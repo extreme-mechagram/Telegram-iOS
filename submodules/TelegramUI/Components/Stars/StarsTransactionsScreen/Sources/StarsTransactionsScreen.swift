@@ -1052,7 +1052,7 @@ final class StarsTransactionsScreenComponent: Component {
                 contentHeight += 44.0
             }
             
-            let initialTransactions = self.starsState?.transactions ?? []
+            let initialTransactions = (self.starsState?.transactions ?? []) + mechagramGetLocalStarsTransactions(account: component.context.account, ton: component.starsContext.ton, mode: .all)
             var panelItems: [StarsTransactionsPanelContainerComponent.Item] = []
             if !initialTransactions.isEmpty {
                 let allTransactionsContext: StarsTransactionsContext

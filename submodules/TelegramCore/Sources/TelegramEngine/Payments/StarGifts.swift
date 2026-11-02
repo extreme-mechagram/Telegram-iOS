@@ -244,6 +244,148 @@ public func mechagramHasLocalProfileGifts(accountId: PeerId, peerId: PeerId) -> 
     return !mechagramReadProfileGifts(accountId: accountId, peerId: peerId).isEmpty
 }
 
+public func mechagramDeleteLocalGift(accountId: PeerId, peerId: PeerId, giftId: Int64) -> Bool {
+    mechagramProfileLock.lock()
+    defer { mechagramProfileLock.unlock() }
+    var entries = mechagramReadProfileGifts(accountId: accountId, peerId: peerId)
+    let initialCount = entries.count
+    entries.removeAll { entry in
+        switch entry.gift {
+        case let .generic(gift):
+            return gift.id == giftId
+        case let .unique(gift):
+            return gift.id == giftId
+        }
+    }
+    guard entries.count != initialCount else { return false }
+    guard mechagramStoreProfileGifts(entries, accountId: accountId, peerId: peerId) else { return false }
+    if mechagramLocalGiftIsWorn(peerId: peerId, giftId: giftId) {
+        mechagramSetLocalGiftWorn(peerId: peerId, giftId: nil)
+    }
+    NotificationCenter.default.post(name: Notification.Name("MechagramLocalProfileGiftsChanged"), object: nil)
+    return true
+}
+
+public struct MechagramLocalStarTransaction: Codable, Equatable {
+    public let id: String
+    public let count: CurrencyAmount
+    public let date: Int32
+    public let peerId: Int64
+    public let peerTitle: String
+    public let isTon: Bool
+    public let isMarketResale: Bool
+    public let starGift: StarGift?
+
+    public init(id: String, count: CurrencyAmount, date: Int32, peerId: Int64, peerTitle: String, isTon: Bool, isMarketResale: Bool, starGift: StarGift?) {
+        self.id = id
+        self.count = count
+        self.date = date
+        self.peerId = peerId
+        self.peerTitle = peerTitle
+        self.isTon = isTon
+        self.isMarketResale = isMarketResale
+        self.starGift = starGift
+    }
+}
+
+private let mechagramTransactionsLock = NSLock()
+
+private func mechagramTransactionsKey(_ accountId: PeerId) -> String {
+    return "mechagram.localTransactions.v1.\(accountId.toInt64())"
+}
+
+public func mechagramReadLocalTransactions(accountId: PeerId) -> [MechagramLocalStarTransaction] {
+    mechagramTransactionsLock.lock()
+    defer { mechagramTransactionsLock.unlock() }
+    guard let data = UserDefaults.standard.data(forKey: mechagramTransactionsKey(accountId)) else {
+        return []
+    }
+    return (try? JSONDecoder().decode([MechagramLocalStarTransaction].self, from: data)) ?? []
+}
+
+public func mechagramRecordLocalTransaction(accountId: PeerId, transaction: MechagramLocalStarTransaction) {
+    mechagramTransactionsLock.lock()
+    defer { mechagramTransactionsLock.unlock() }
+    var list = mechagramReadLocalTransactions(accountId: accountId)
+    list.insert(transaction, at: 0)
+    if let data = try? JSONEncoder().encode(list) {
+        UserDefaults.standard.set(data, forKey: mechagramTransactionsKey(accountId))
+    }
+    NotificationCenter.default.post(name: Notification.Name("MechagramLocalTransactionsChanged"), object: nil)
+}
+
+public func mechagramGetLocalStarsTransactions(account: Account, ton: Bool, mode: StarsTransactionsContext.Mode) -> [StarsContext.State.Transaction] {
+    let raw = mechagramReadLocalTransactions(accountId: account.peerId)
+    let filtered = raw.filter { $0.isTon == ton }
+    var results: [StarsContext.State.Transaction] = []
+    for item in filtered {
+        var flags: StarsContext.State.Transaction.Flags = [.isLocal, .isGift]
+        if item.isMarketResale {
+            flags.insert(.isStarGiftResale)
+        }
+        let user = TelegramUser(
+            id: PeerId(item.peerId),
+            accessHash: nil,
+            firstName: item.peerTitle.isEmpty ? "Telegram" : item.peerTitle,
+            lastName: nil,
+            username: nil,
+            phone: nil,
+            photo: [],
+            botInfo: nil,
+            restrictionInfo: nil,
+            flags: [],
+            emojiStatus: nil,
+            usernames: [],
+            storiesHidden: nil,
+            nameColor: nil,
+            backgroundEmojiId: nil,
+            profileColor: nil,
+            profileBackgroundEmojiId: nil,
+            subscriberCount: nil,
+            verificationIconFileId: nil,
+            linkedCommunityId: nil
+        )
+        let tx = StarsContext.State.Transaction(
+            flags: flags,
+            id: item.id,
+            count: item.count,
+            date: item.date,
+            peer: .peer(EnginePeer(user)),
+            title: nil,
+            description: nil,
+            photo: nil,
+            transactionDate: nil,
+            transactionUrl: nil,
+            paidMessageId: nil,
+            giveawayMessageId: nil,
+            media: [],
+            subscriptionPeriod: nil,
+            starGift: item.starGift,
+            floodskipNumber: nil,
+            starrefCommissionPermille: nil,
+            starrefPeerId: nil,
+            starrefAmount: nil,
+            paidMessageCount: nil,
+            premiumGiftMonths: nil,
+            adsProceedsFromDate: nil,
+            adsProceedsToDate: nil
+        )
+        switch mode {
+        case .all:
+            results.append(tx)
+        case .incoming:
+            if tx.count.amount > StarsAmount.zero {
+                results.append(tx)
+            }
+        case .outgoing:
+            if tx.count.amount < StarsAmount.zero {
+                results.append(tx)
+            }
+        }
+    }
+    return results
+}
+
 public final class StarGiftsList: Codable, Equatable {
     public let items: [StarGift]
     public let hashValue: Int32

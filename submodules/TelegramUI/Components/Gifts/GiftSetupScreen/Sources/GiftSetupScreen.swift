@@ -472,9 +472,23 @@ private final class GiftSetupScreenComponent: Component {
             let peerId = component.peerId
 
             if UserDefaults.standard.bool(forKey: "mechagram.visualBalances"), UserDefaults.standard.bool(forKey: "mechagram.visualGifts"), case let .starGift(gift, _) = component.subject, let controller = environment.controller() {
+                var textInputText = NSAttributedString()
+                if let inputPanelView = self.inputPanel.view as? MessageInputPanelComponent.View, case let .text(text) = inputPanelView.getSendMessageInput() {
+                    textInputText = text
+                }
+                let entities = generateChatInputTextEntities(textInputText)
+                let giftText = textInputText.string.isEmpty ? nil : textInputText.string
+                let nameHidden = self.hideName
                 let price = gift.price + (self.includeUpgrade ? (gift.upgradeStars ?? 0) : 0)
                 let createGift: () -> Void = {
-                    let _ = (context.engine.payments.mechagramSimulateGift(peerId: peerId, gift: .generic(gift), price: CurrencyAmount(amount: StarsAmount(value: price, nanos: 0), currency: .stars)) |> deliverOnMainQueue).start(next: { success in
+                    let _ = (context.engine.payments.mechagramSimulateGift(
+                        peerId: peerId,
+                        gift: .generic(gift),
+                        price: CurrencyAmount(amount: StarsAmount(value: price, nanos: 0), currency: .stars),
+                        text: giftText,
+                        entities: entities,
+                        nameHidden: nameHidden
+                    ) |> deliverOnMainQueue).start(next: { success in
                         if success, let navigation = controller.navigationController as? NavigationController {
                             var controllers = navigation.viewControllers.filter { !($0 is GiftSetupScreen) && !($0 is GiftOptionsScreenProtocol) }
                             controllers.append(context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))

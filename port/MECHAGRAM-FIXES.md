@@ -43,3 +43,8 @@ Local syntax checks and backend protocol tests passed before push. Full Swift co
 ## Three-dot action menu and realistic gift presentation (build 19)
 
 Local and visual collectible gifts now display the native three-dot more menu on profile gift cards across own and other profiles. Context menu actions expose link copying, sharing, local transfer, and viewing the owner's profile without local-gift restrictions. Simulated gift and market purchases in chat identify the correct recipient and sender IDs, clear false transfer flags, and attach resale amounts so gift announcements render as gifts rather than generic transfers or self-purchases.
+
+### Profile Gift Deletion, Visual Stars Transactions, and Gift Signatures
+- **Local Profile Gift Deletion**: Profile gifts now expose a destructive "Delete" action in the 3-dot context menu for both collectible and regular visual gifts. Selecting delete removes the entry from the shared local store, clears any active wear status, and posts updates to synchronize profile views.
+- **Visual Stars & TON Transactions**: Purchases and gift operations now generate simulated outgoing local transactions. These transactions integrate seamlessly into `StarsContext` and `StarsTransactionsContext`, appearing with the correct recipient title, negative amount, and gift icon/subtitle in the Telegram Stars history tabs.
+- **Visual Gift Captions/Signatures**: Fixed `GiftSetupScreen` omitting user message input when sending visual gifts; input text, formatting entities, and sender name visibility are now properly forwarded to `mechagramSimulateGift` and recorded on the gift card and chat announcement.

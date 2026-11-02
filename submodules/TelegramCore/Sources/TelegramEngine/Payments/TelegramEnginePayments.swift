@@ -60,8 +60,21 @@ public extension TelegramEngine {
             }
         }
 
+        public func mechagramDeleteLocalGift(peerId: EnginePeer.Id, giftId: Int64) -> Signal<Bool, NoError> {
+            return self.account.postbox.transaction { _ -> Bool in
+                return mechagramDeleteLocalGift(accountId: self.account.peerId, peerId: peerId, giftId: giftId)
+            }
+        }
+
         // Local preview only: no outgoing queue, payment form or network request.
-        public func mechagramSimulateGift(peerId: EnginePeer.Id, gift: StarGift, price: CurrencyAmount) -> Signal<Bool, NoError> {
+        public func mechagramSimulateGift(
+            peerId: EnginePeer.Id,
+            gift: StarGift,
+            price: CurrencyAmount,
+            text: String? = nil,
+            entities: [MessageTextEntity] = [],
+            nameHidden: Bool = false
+        ) -> Signal<Bool, NoError> {
             return self.account.postbox.transaction { transaction -> Bool in
                 return mechagramWithProfileGiftLock {
                 let settings = UserDefaults.standard
@@ -77,7 +90,7 @@ public extension TelegramEngine {
                 let isSelf = (peerId == self.account.peerId)
                 switch gift {
                 case let .generic(genericGift):
-                    action = TelegramMediaAction(action: .starGift(gift: gift, convertStars: genericGift.convertStars, text: nil, entities: [], nameHidden: false, savedToProfile: true, converted: false, upgraded: false, canUpgrade: genericGift.upgradeStars != nil, upgradeStars: genericGift.upgradeStars, isRefunded: false, isPrepaidUpgrade: false, upgradeMessageId: nil, peerId: peerId, senderId: isSelf ? nil : self.account.peerId, savedId: nil, prepaidUpgradeHash: nil, giftMessageId: nil, upgradeSeparate: false, isAuctionAcquired: false, toPeerId: peerId, number: nil))
+                    action = TelegramMediaAction(action: .starGift(gift: gift, convertStars: genericGift.convertStars, text: text, entities: entities, nameHidden: nameHidden, savedToProfile: true, converted: false, upgraded: false, canUpgrade: genericGift.upgradeStars != nil, upgradeStars: genericGift.upgradeStars, isRefunded: false, isPrepaidUpgrade: false, upgradeMessageId: nil, peerId: peerId, senderId: isSelf ? nil : self.account.peerId, savedId: nil, prepaidUpgradeHash: nil, giftMessageId: nil, upgradeSeparate: false, isAuctionAcquired: false, toPeerId: peerId, number: nil))
                 case .unique:
                     action = TelegramMediaAction(action: .starGiftUnique(gift: gift, isUpgrade: false, isTransferred: false, savedToProfile: true, canExportDate: nil, transferStars: nil, isRefunded: false, isPrepaidUpgrade: false, peerId: peerId, senderId: isSelf ? nil : self.account.peerId, savedId: nil, resaleAmount: price, canTransferDate: nil, canResaleDate: nil, dropOriginalDetailsStars: nil, assigned: false, fromOffer: false, canCraftAt: nil, isCrafted: false))
                 }
@@ -88,8 +101,8 @@ public extension TelegramEngine {
                 profileGifts.insert(ProfileGiftsContext.State.StarGift(
                     gift: gift, reference: nil,
                     fromPeer: isSelf ? nil : transaction.getPeer(self.account.peerId).map(EnginePeer.init),
-                    date: Int32(Date().timeIntervalSince1970), text: nil, entities: [],
-                    nameHidden: false, savedToProfile: true, pinnedToTop: false, convertStars: nil,
+                    date: Int32(Date().timeIntervalSince1970), text: text, entities: entities,
+                    nameHidden: nameHidden, savedToProfile: true, pinnedToTop: false, convertStars: nil,
                     canUpgrade: false, canExportDate: nil, upgradeStars: nil, transferStars: nil,
                     canTransferDate: nil, canResaleDate: nil, collectionIds: nil, prepaidUpgradeHash: nil,
                     upgradeSeparate: false, dropOriginalDetailsStars: nil, number: nil,
@@ -103,6 +116,28 @@ public extension TelegramEngine {
                 if case let .unique(value) = gift {
                     mechagramRecordLocalMarketPurchase(accountId: self.account.peerId.toInt64(), giftTypeId: value.giftId, giftId: value.id)
                 }
+
+                let recipientPeer = transaction.getPeer(peerId)
+                let recipientTitle = recipientPeer?.debugDisplayTitle ?? "Recipient"
+                let negativeAmount = CurrencyAmount(amount: StarsAmount(value: -abs(price.amount.value), nanos: price.amount.nanos), currency: price.currency)
+                let isMarketResale: Bool
+                if case .unique = gift {
+                    isMarketResale = true
+                } else {
+                    isMarketResale = false
+                }
+                let localTx = MechagramLocalStarTransaction(
+                    id: "local_\(Int64.random(in: 100000...999999))_\(Int32(Date().timeIntervalSince1970))",
+                    count: negativeAmount,
+                    date: Int32(Date().timeIntervalSince1970),
+                    peerId: peerId.toInt64(),
+                    peerTitle: recipientTitle,
+                    isTon: isTon,
+                    isMarketResale: isMarketResale,
+                    starGift: gift
+                )
+                mechagramRecordLocalTransaction(accountId: self.account.peerId, transaction: localTx)
+
                 NotificationCenter.default.post(name: Notification.Name("MechagramLocalProfileGiftsChanged"), object: nil)
                 return true
                 }

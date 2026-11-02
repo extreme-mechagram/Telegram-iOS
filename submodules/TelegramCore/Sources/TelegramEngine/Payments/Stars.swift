@@ -567,6 +567,7 @@ private final class StarsContextImpl {
     
     private let disposable = MetaDisposable()
     private var updateDisposable: Disposable?
+    private var transactionsObserver: NSObjectProtocol?
     
     init(account: Account, ton: Bool) {
         assert(Queue.mainQueue().isCurrent())
@@ -588,12 +589,23 @@ private final class StarsContextImpl {
             self.updateState(StarsContext.State(flags: [], balance: balance, subscriptions: state.subscriptions, canLoadMoreSubscriptions: state.canLoadMoreSubscriptions, transactions: state.transactions, canLoadMoreTransactions: state.canLoadMoreTransactions, isLoading: false))
             self.load(force: true)
         })
+
+        self.transactionsObserver = NotificationCenter.default.addObserver(forName: Notification.Name("MechagramLocalTransactionsChanged"), object: nil, queue: .main) { [weak self] _ in
+            guard let self, let state = self._state else { return }
+            let localTransactions = mechagramGetLocalStarsTransactions(account: self.account, ton: self.ton, mode: .all)
+            var transactions = state.transactions
+            transactions.removeAll(where: { $0.flags.contains(.isLocal) })
+            self.updateState(StarsContext.State(flags: state.flags, balance: state.balance, subscriptions: state.subscriptions, canLoadMoreSubscriptions: state.canLoadMoreSubscriptions, transactions: localTransactions + transactions, canLoadMoreTransactions: state.canLoadMoreTransactions, isLoading: state.isLoading))
+        }
     }
     
     deinit {
         assert(Queue.mainQueue().isCurrent())
         self.disposable.dispose()
         self.updateDisposable?.dispose()
+        if let transactionsObserver = self.transactionsObserver {
+            NotificationCenter.default.removeObserver(transactionsObserver)
+        }
     }
     
     private var previousLoadTimestamp: Double?
@@ -611,7 +623,8 @@ private final class StarsContextImpl {
             guard let self else {
                 return
             }
-            self.updateState(StarsContext.State(flags: [], balance: status.balance, subscriptions: status.subscriptions, canLoadMoreSubscriptions: status.nextSubscriptionsOffset != nil, transactions: status.transactions, canLoadMoreTransactions: status.nextTransactionsOffset != nil, isLoading: false))
+            let localTransactions = mechagramGetLocalStarsTransactions(account: self.account, ton: self.ton, mode: .all)
+            self.updateState(StarsContext.State(flags: [], balance: status.balance, subscriptions: status.subscriptions, canLoadMoreSubscriptions: status.nextSubscriptionsOffset != nil, transactions: localTransactions + status.transactions, canLoadMoreTransactions: status.nextTransactionsOffset != nil, isLoading: false))
         }, error: { [weak self] _ in
             guard let self else {
                 return
@@ -1187,6 +1200,7 @@ private final class StarsTransactionsContextImpl {
     
     private let disposable = MetaDisposable()
     private var stateDisposable: Disposable?
+    private var transactionsObserver: NSObjectProtocol?
     
     init(account: Account, subject: StarsTransactionsContext.Subject, mode: StarsTransactionsContext.Mode) {
         assert(Queue.mainQueue().isCurrent())
@@ -1211,18 +1225,30 @@ private final class StarsTransactionsContextImpl {
         }
         self.mode = mode
         
+        let localTransactions = mechagramGetLocalStarsTransactions(account: self.account, ton: self.ton, mode: mode)
         let initialTransactions: [StarsContext.State.Transaction]
         switch mode {
         case .all:
-            initialTransactions = currentTransactions
+            initialTransactions = localTransactions + currentTransactions
         case .incoming:
-            initialTransactions = currentTransactions.filter { $0.count.amount > StarsAmount.zero }
+            initialTransactions = localTransactions.filter { $0.count.amount > StarsAmount.zero } + currentTransactions.filter { $0.count.amount > StarsAmount.zero }
         case .outgoing:
-            initialTransactions = currentTransactions.filter { $0.count.amount < StarsAmount.zero }
+            initialTransactions = localTransactions.filter { $0.count.amount < StarsAmount.zero } + currentTransactions.filter { $0.count.amount < StarsAmount.zero }
         }
         
         self._state = StarsTransactionsContext.State(transactions: initialTransactions, canLoadMore: true, isLoading: false)
         self._statePromise.set(.single(self._state))
+
+        self.transactionsObserver = NotificationCenter.default.addObserver(forName: Notification.Name("MechagramLocalTransactionsChanged"), object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            let localTransactions = mechagramGetLocalStarsTransactions(account: self.account, ton: self.ton, mode: self.mode)
+            var updatedState = self._state
+            updatedState.transactions.removeAll(where: { $0.flags.contains(.isLocal) })
+            for transaction in localTransactions.reversed() {
+                updatedState.transactions.insert(transaction, at: 0)
+            }
+            self.updateState(updatedState)
+        }
         
         if case let .starsTransactionsContext(transactionsContext) = subject {
             self.stateDisposable = (transactionsContext.state
@@ -1293,6 +1319,9 @@ private final class StarsTransactionsContextImpl {
         assert(Queue.mainQueue().isCurrent())
         self.disposable.dispose()
         self.stateDisposable?.dispose()
+        if let transactionsObserver = self.transactionsObserver {
+            NotificationCenter.default.removeObserver(transactionsObserver)
+        }
     }
     
     func loadMore(reload: Bool = false) {
@@ -1317,8 +1346,18 @@ private final class StarsTransactionsContextImpl {
             }
             self.nextOffset = status.nextTransactionsOffset
             
+            let localTransactions = mechagramGetLocalStarsTransactions(account: self.account, ton: self.ton, mode: self.mode)
             var updatedState = self._state
-            updatedState.transactions = nextOffset.isEmpty ? status.transactions : updatedState.transactions + status.transactions
+            let baseTransactions = nextOffset.isEmpty ? (localTransactions + status.transactions) : (updatedState.transactions + status.transactions)
+            var existingIds = Set<String>()
+            var mergedTransactions: [StarsContext.State.Transaction] = []
+            for tx in baseTransactions {
+                if !existingIds.contains(tx.id) {
+                    existingIds.insert(tx.id)
+                    mergedTransactions.append(tx)
+                }
+            }
+            updatedState.transactions = mergedTransactions
             updatedState.isLoading = false
             updatedState.canLoadMore = self.nextOffset != nil
             self.updateState(updatedState)

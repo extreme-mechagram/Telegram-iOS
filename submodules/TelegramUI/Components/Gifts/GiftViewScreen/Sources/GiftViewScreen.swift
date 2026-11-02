@@ -1557,12 +1557,19 @@ private final class GiftViewSheetContent: CombinedComponent {
             }
             
             
-            guard let arguments = self.subject.arguments, case let .unique(gift) = arguments.gift else {
+            guard let arguments = self.subject.arguments else {
                 return
+            }
+
+            let uniqueGift: StarGift.UniqueGift?
+            if case let .unique(gift) = arguments.gift {
+                uniqueGift = gift
+            } else {
+                uniqueGift = nil
             }
             
             let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
-            let link = "https://t.me/nft/\(gift.slug)"
+            let link = uniqueGift.map { "https://t.me/nft/\($0.slug)" }
             
             let _ = (self.context.engine.data.get(
                 TelegramEngine.EngineData.Item.Peer.Peer(id: arguments.peerId ?? context.account.peerId)
@@ -1574,7 +1581,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 var items: [ContextMenuItem] = []
                 let strings = presentationData.strings
                 
-                if let reference = arguments.reference, case .unique = arguments.gift, let togglePinnedToTop = controller.togglePinnedToTop, let pinnedToTop = arguments.pinnedToTop {
+                if let reference = arguments.reference, uniqueGift != nil, let togglePinnedToTop = controller.togglePinnedToTop, let pinnedToTop = arguments.pinnedToTop {
                     items.append(.action(ContextMenuActionItem(text: pinnedToTop ? strings.PeerInfo_Gifts_Context_Unpin : strings.PeerInfo_Gifts_Context_Pin , icon: { theme in generateTintedImage(image: UIImage(bundleImageName: pinnedToTop ? "Chat/Context Menu/Unpin" : "Chat/Context Menu/Pin"), color: theme.contextMenu.primaryColor) }, action: { [weak self] c, f in
                         c?.dismiss(completion: { [weak self, weak controller] in
                             guard let self, let controller else {
@@ -1597,8 +1604,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                     })))
                 }
                                 
-                if case let .unique(gift) = arguments.gift, let resellAmount = gift.resellAmounts?.first, resellAmount.amount.value > 0 {
-                    if arguments.reference != nil || gift.owner?.peerId == self.context.account.peerId {
+                if let uniqueGift, let resellAmount = uniqueGift.resellAmounts?.first, resellAmount.amount.value > 0 {
+                    if arguments.reference != nil || uniqueGift.owner?.peerId == self.context.account.peerId {
                         items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_ChangePrice, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/PriceTag"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] c, _ in
@@ -1609,23 +1616,27 @@ private final class GiftViewSheetContent: CombinedComponent {
                     }
                 }
                 
-                items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_CopyLink, icon: { theme in
-                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Link"), color: theme.contextMenu.primaryColor)
-                }, action: { [weak controller] c, _ in
-                    c?.dismiss(completion: nil)
-                    
-                    UIPasteboard.general.string = link
-                    
-                    controller?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
-                })))
+                if let link {
+                    items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_CopyLink, icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Link"), color: theme.contextMenu.primaryColor)
+                    }, action: { [weak controller] c, _ in
+                        c?.dismiss(completion: nil)
+                        
+                        UIPasteboard.general.string = link
+                        
+                        controller?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+                    })))
+                }
                 
-                items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_Share, icon: { theme in
-                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.contextMenu.primaryColor)
-                }, action: { [weak self] c, _ in
-                    c?.dismiss(completion: nil)
-                    
-                    self?.shareGift()
-                })))
+                if uniqueGift != nil {
+                    items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_Share, icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.contextMenu.primaryColor)
+                    }, action: { [weak self] c, _ in
+                        c?.dismiss(completion: nil)
+                        
+                        self?.shareGift()
+                    })))
+                }
                           
                 if let _ = arguments.canCraftDate {
                     items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_Craft, icon: { theme in
@@ -1647,7 +1658,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     })))
                 }
                                 
-                if gift.flags.contains(.isThemeAvailable) {
+                if let uniqueGift, uniqueGift.flags.contains(.isThemeAvailable) {
                     items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_SetAsTheme, icon: { theme in
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/ApplyTheme"), color: theme.contextMenu.primaryColor)
                     }, action: { [weak self] c, _ in
@@ -1657,8 +1668,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                     })))
                 }
                 
-                let isOwn = arguments.reference != nil || gift.owner?.peerId == self.context.account.peerId
-                if arguments.transferStars != nil || (self.subject.mechagramIsLocal && isOwn) {
+                let isOwn = arguments.reference != nil || uniqueGift?.owner?.peerId == self.context.account.peerId
+                if (arguments.transferStars != nil || (self.subject.mechagramIsLocal && isOwn)) && uniqueGift != nil {
                     if case let .channel(channel) = peer, !channel.flags.contains(.isCreator) {
                         
                     } else {
@@ -1714,6 +1725,31 @@ private final class GiftViewSheetContent: CombinedComponent {
                     })))
                 }
                 
+                if self.subject.mechagramIsLocal {
+                    let targetPeerId = arguments.peerId ?? self.context.account.peerId
+                    let giftId: Int64
+                    switch arguments.gift {
+                    case let .generic(g):
+                        giftId = g.id
+                    case let .unique(u):
+                        giftId = u.id
+                    }
+                    items.append(.action(ContextMenuActionItem(text: presentationData.strings.Common_Delete, textColor: .destructive, icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
+                    }, action: { [weak self, weak controller] c, _ in
+                        c?.dismiss(completion: nil)
+                        guard let self, let controller else {
+                            return
+                        }
+                        let _ = (self.context.engine.payments.mechagramDeleteLocalGift(peerId: targetPeerId, giftId: giftId)
+                        |> deliverOnMainQueue).start(next: { [weak controller] deleted in
+                            if deleted {
+                                controller?.dismiss(animated: true)
+                            }
+                        })
+                    })))
+                }
+
                 let contextController = makeContextController(presentationData: presentationData, source: .reference(GiftViewContextReferenceContentSource(controller: controller, sourceView: sourceView)), items: .single(ContextController.Items(content: .list(items))), gesture: nil)
                 controller.presentInGlobalOverlay(contextController)
             })
@@ -5409,7 +5445,7 @@ private final class GiftViewSheetContent: CombinedComponent {
             ))
             
             var rightControlItems: [GlassControlGroupComponent.Item] = []
-            if uniqueGift != nil && !showWearPreview && !isDismantled {
+            if (uniqueGift != nil || component.subject.mechagramIsLocal) && !showWearPreview && !isDismantled {
                 if let _ = component.subject.arguments?.canCraftDate {
                     rightControlItems.append(GlassControlGroupComponent.Item(
                         id: AnyHashable("craft"),
