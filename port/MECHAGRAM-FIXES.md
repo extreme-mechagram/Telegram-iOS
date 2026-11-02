@@ -39,3 +39,7 @@ An isolated VDS service shares collectible preview metadata across installations
 Hide mod settings entry removes only the settings row. Existing feature preferences remain active. Hold Appearance in Telegram settings to restore and open Mechagram.
 
 Local syntax checks and backend protocol tests passed before push. Full Swift compilation and iPhone validation remain pending until CI/device results. At the user's request, stop following CI when the compilation step starts.
+
+## Three-dot action menu and realistic gift presentation (build 19)
+
+Local and visual collectible gifts now display the native three-dot more menu on profile gift cards across own and other profiles. Context menu actions expose link copying, sharing, local transfer, and viewing the owner's profile without local-gift restrictions. Simulated gift and market purchases in chat identify the correct recipient and sender IDs, clear false transfer flags, and attach resale amounts so gift announcements render as gifts rather than generic transfers or self-purchases.
