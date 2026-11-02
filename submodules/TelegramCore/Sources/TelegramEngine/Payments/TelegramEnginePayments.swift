@@ -62,7 +62,7 @@ public extension TelegramEngine {
 
         public func mechagramDeleteLocalGift(peerId: EnginePeer.Id, giftId: Int64) -> Signal<Bool, NoError> {
             return self.account.postbox.transaction { _ -> Bool in
-                return mechagramDeleteLocalGift(accountId: self.account.peerId, peerId: peerId, giftId: giftId)
+                return _internal_mechagramDeleteLocalGift(accountId: self.account.peerId, peerId: peerId, giftId: giftId)
             }
         }
 

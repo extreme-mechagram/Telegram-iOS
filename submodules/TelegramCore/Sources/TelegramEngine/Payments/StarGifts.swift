@@ -244,7 +244,7 @@ public func mechagramHasLocalProfileGifts(accountId: PeerId, peerId: PeerId) -> 
     return !mechagramReadProfileGifts(accountId: accountId, peerId: peerId).isEmpty
 }
 
-public func mechagramDeleteLocalGift(accountId: PeerId, peerId: PeerId, giftId: Int64) -> Bool {
+public func _internal_mechagramDeleteLocalGift(accountId: PeerId, peerId: PeerId, giftId: Int64) -> Bool {
     mechagramProfileLock.lock()
     defer { mechagramProfileLock.unlock() }
     var entries = mechagramReadProfileGifts(accountId: accountId, peerId: peerId)
@@ -266,6 +266,10 @@ public func mechagramDeleteLocalGift(accountId: PeerId, peerId: PeerId, giftId: 
     return true
 }
 
+
+public func mechagramDeleteLocalGift(accountId: PeerId, peerId: PeerId, giftId: Int64) -> Bool {
+    return _internal_mechagramDeleteLocalGift(accountId: accountId, peerId: peerId, giftId: giftId)
+}
 public struct MechagramLocalStarTransaction: Codable, Equatable {
     public let id: String
     public let count: CurrencyAmount
