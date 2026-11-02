@@ -4,6 +4,8 @@ import MtProtoKit
 import SwiftSignalKit
 import TelegramApi
 
+public var mechagramHideSettingsSessionOnly: Bool = false
+
 // MECHAGRAM_GIFT_CONFIRMATION_POLICY_BEGIN
 public let mechagramSkipGiftConfirmationKey = "mechagram.skipGiftConfirmation.v1"
 

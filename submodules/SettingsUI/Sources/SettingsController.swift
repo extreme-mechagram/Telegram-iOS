@@ -151,7 +151,8 @@ public func exteraPortSettingsController(context: AccountContext) -> ViewControl
         values.set(readValues())
     })
     arguments.hideSettings = {
-        UserDefaults.standard.set(true, forKey: "mechagram.hideSettings.v1")
+        mechagramHideSettingsSessionOnly = true
+        UserDefaults.standard.removeObject(forKey: "mechagram.hideSettings.v1")
         let _ = resultController?.navigationController?.popViewController(animated: true)
     }
 

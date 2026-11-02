@@ -227,10 +227,10 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     } else {
         notificationsWarning = false
     }
-    if !UserDefaults.standard.bool(forKey: "mechagram.hideSettings.v1") {
-    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 99, text: (Locale.current.languageCode ?? "en") == "ru" ? "Настройки мода" : "Mod settings", icon: PresentationResourcesSettings.appearance, action: {
-        interaction.openSettings(.exteraPort)
-    }))
+    if !mechagramHideSettingsSessionOnly {
+        items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 99, text: (Locale.current.languageCode ?? "en") == "ru" ? "Настройки мода" : "Mod settings", icon: PresentationResourcesSettings.appearance, action: {
+            interaction.openSettings(.exteraPort)
+        }))
     }
 
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 0, label: notificationsWarning ? .badge("!", presentationData.theme.list.itemDestructiveColor) : .none, text: presentationData.strings.Settings_NotificationsAndSounds, icon: PresentationResourcesSettings.notifications, action: {
@@ -246,8 +246,8 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         interaction.openSettings(.appearance)
     })
     appearanceItem.longPressAction = {
-        if UserDefaults.standard.bool(forKey: "mechagram.hideSettings.v1") {
-            UserDefaults.standard.set(false, forKey: "mechagram.hideSettings.v1")
+        if mechagramHideSettingsSessionOnly {
+            mechagramHideSettingsSessionOnly = false
             interaction.openSettings(.exteraPort)
         }
     }
