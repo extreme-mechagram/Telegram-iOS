@@ -507,6 +507,8 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         super.didLoad()
         
         self.titleNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
+        self.phoneAndCountryNode.numberNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
+        self.phoneAndCountryNode.countryButton.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
         #if DEBUG && false
         self.noticeNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugQrTap(_:))))
         #endif
@@ -683,12 +685,12 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     @objc private func debugTap(_ recognizer: UITapGestureRecognizer) {
         if case .ended = recognizer.state {
             let timestamp = CACurrentMediaTime()
-            if self.debugTapCounter.0 < timestamp - 0.4 {
+            if self.debugTapCounter.0 < timestamp - 1.5 {
                 self.debugTapCounter.0 = timestamp
                 self.debugTapCounter.1 = 0
             }
             
-            if self.debugTapCounter.0 >= timestamp - 0.4 {
+            if self.debugTapCounter.0 >= timestamp - 1.5 {
                 self.debugTapCounter.0 = timestamp
                 self.debugTapCounter.1 += 1
             }

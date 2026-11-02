@@ -75,7 +75,10 @@ private enum DebugAccountsControllerEntry: ItemListNodeEntry {
         let arguments = arguments as! DebugAccountsControllerArguments
         switch self {
             case let .record(_, record, current):
-                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: "\(UInt64(bitPattern: record.id.int64))", style: .left, checked: current, zeroSeparatorInsets: false, sectionId: self.section, action: {
+                let activeServer = UserDefaults.standard.string(forKey: "mechagram.serverForAccount.\(record.id.int64)") ?? UserDefaults.standard.string(forKey: "mechagram.activeCustomServerName")
+                let serverSuffix = (activeServer != nil && !activeServer!.isEmpty) ? " · \(activeServer!)" : ""
+                let title = "\(UInt64(bitPattern: record.id.int64))\(serverSuffix)"
+                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: title, style: .left, checked: current, zeroSeparatorInsets: false, sectionId: self.section, action: {
                     arguments.switchAccount(record.id)
                 })
             case .loginNewAccount:

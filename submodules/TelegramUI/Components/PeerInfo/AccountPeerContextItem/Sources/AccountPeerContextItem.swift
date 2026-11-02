@@ -54,7 +54,14 @@ private final class AccountPeerContextItemNode: ASDisplayNode, ContextMenuCustom
         self.textNode.isUserInteractionEnabled = false
         self.textNode.displaysAsynchronously = false
         let peerTitle = item.peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
-        self.textNode.attributedText = NSAttributedString(string: peerTitle, font: textFont, textColor: presentationData.theme.contextMenu.primaryColor)
+        let activeServer = UserDefaults.standard.string(forKey: "mechagram.serverForAccount.\(item.account.id.int64)") ?? UserDefaults.standard.string(forKey: "mechagram.activeCustomServerName")
+        let titleText: String
+        if let activeServer, !activeServer.isEmpty {
+            titleText = "\(peerTitle) · \(activeServer)"
+        } else {
+            titleText = peerTitle
+        }
+        self.textNode.attributedText = NSAttributedString(string: titleText, font: textFont, textColor: presentationData.theme.contextMenu.primaryColor)
         self.textNode.maximumNumberOfLines = 1
         
         self.avatarNode = AvatarNode(font: avatarPlaceholderFont(size: 14.0))

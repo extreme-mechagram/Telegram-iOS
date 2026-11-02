@@ -66,6 +66,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case sendCriticalLogs(PresentationTheme)
     case sendAllLogs
     case accounts(PresentationTheme)
+    case customServer(PresentationTheme)
     case logToFile(PresentationTheme, Bool)
     case logToConsole(PresentationTheme, Bool)
     case redactSensitiveData(PresentationTheme, Bool)
@@ -129,7 +130,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return DebugControllerSection.sticker.rawValue
         case .sendLogs, .sendOneLog, .sendShareLogs, .sendGroupCallLogs, .sendStorageStats, .sendNotificationLogs, .sendCriticalLogs, .sendAllLogs:
             return DebugControllerSection.logs.rawValue
-        case .accounts:
+        case .accounts, .customServer:
             return DebugControllerSection.logs.rawValue
         case .logToFile, .logToConsole, .redactSensitiveData:
             return DebugControllerSection.logging.rawValue
@@ -172,6 +173,8 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 8
         case .accounts:
             return 9
+        case .customServer:
+            return 9999
         case .logToFile:
             return 10
         case .logToConsole:
@@ -939,6 +942,49 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                 }
                 arguments.pushController(debugAccountsController(context: context, accountManager: arguments.sharedContext.accountManager))
             })
+        case .customServer:
+            let currentServer = UserDefaults.standard.string(forKey: "mechagram.activeCustomServerName") ?? "Telegram Official"
+            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: "Добавить свой сервер", value: currentServer, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                let alert = UIAlertController(title: "Добавить свой сервер", message: "Укажите параметры MTProto сервера:", preferredStyle: .alert)
+                alert.addTextField { tf in
+                    tf.placeholder = "Название (например, Мой Сервер)"
+                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.name")
+                }
+                alert.addTextField { tf in
+                    tf.placeholder = "IP адрес (например, 127.0.0.1)"
+                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.ip")
+                }
+                alert.addTextField { tf in
+                    tf.placeholder = "Порт (например, 443)"
+                    tf.keyboardType = .numberPad
+                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443"
+                }
+                alert.addTextField { tf in
+                    tf.placeholder = "RSA ключ"
+                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.rsa")
+                }
+                alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+                alert.addAction(UIAlertAction(title: "Подключить", style: .default, handler: { _ in
+                    let name = alert.textFields?[0].text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let ip = alert.textFields?[1].text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let port = alert.textFields?[2].text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "443"
+                    let rsa = alert.textFields?[3].text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    if !name.isEmpty && !ip.isEmpty {
+                        UserDefaults.standard.set(name, forKey: "mechagram.activeCustomServerName")
+                        UserDefaults.standard.set(name, forKey: "mechagram.customServer.name")
+                        UserDefaults.standard.set(ip, forKey: "mechagram.customServer.ip")
+                        UserDefaults.standard.set(port, forKey: "mechagram.customServer.port")
+                        UserDefaults.standard.set(rsa, forKey: "mechagram.customServer.rsa")
+                        if let currentAccountId = arguments.context?.account.id.int64 {
+                            UserDefaults.standard.set(name, forKey: "mechagram.serverForAccount.\(currentAccountId)")
+                        }
+                        NotificationCenter.default.post(name: Notification.Name("MechagramCustomServerChanged"), object: nil)
+                    }
+                }))
+                if let root = arguments.getRootController() {
+                    root.present(alert, animated: true)
+                }
+            })
         case let .logToFile(_, value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Log to File", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = updateLoggingSettings(accountManager: arguments.sharedContext.accountManager, {
@@ -1553,6 +1599,7 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
     entries.append(.sendStorageStats)
     if isMainApp {
         entries.append(.accounts(presentationData.theme))
+        entries.append(.customServer(presentationData.theme))
     }
     
     entries.append(.logToFile(presentationData.theme, loggingSettings.logToFile))
