@@ -944,7 +944,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             })
         case .customServer:
             let currentServer = UserDefaults.standard.string(forKey: "mechagram.activeCustomServerName") ?? "Telegram Official"
-            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: "Добавить свой сервер", value: currentServer, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: "Добавить свой сервер", label: currentServer, sectionId: self.section, style: .blocks, action: {
                 let alert = UIAlertController(title: "Добавить свой сервер", message: "Укажите параметры MTProto сервера:", preferredStyle: .alert)
                 alert.addTextField { tf in
                     tf.placeholder = "Название (например, Мой Сервер)"
