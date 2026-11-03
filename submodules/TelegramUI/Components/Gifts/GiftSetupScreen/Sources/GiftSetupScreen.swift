@@ -491,28 +491,29 @@ private final class GiftSetupScreenComponent: Component {
                         entities: entities,
                         nameHidden: nameHidden
                     ) |> deliverOnMainQueue).start(next: { success in
-                        controller.dismiss(completion: {
-                            if let nav = nav {
-                                var controllers = nav.viewControllers.filter { !($0 is GiftSetupScreen) && !($0 is GiftOptionsScreenProtocol) }
-                                if peerId != context.account.peerId {
-                                    var found = false
-                                    for c in controllers.reversed() {
-                                        if let chat = c as? ChatController, case .peer(id: peerId) = chat.chatLocation {
-                                            chat.hintPlayNextOutgoingGift()
-                                            found = true
-                                            break
-                                        }
-                                    }
-                                    if !found {
-                                        let chatController = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
-                                        chatController.hintPlayNextOutgoingGift()
-                                        controllers.append(chatController)
+                        if let nav = nav {
+                            var controllers = nav.viewControllers.filter { !($0 is GiftSetupScreen) && !($0 is GiftOptionsScreenProtocol) }
+                            if peerId != context.account.peerId {
+                                controllers = controllers.filter { !($0 is PeerInfoScreen) && !($0 is ContactSelectionController) }
+                                var found = false
+                                for c in controllers.reversed() {
+                                    if let chat = c as? ChatController, case .peer(id: peerId) = chat.chatLocation {
+                                        chat.hintPlayNextOutgoingGift()
+                                        found = true
+                                        break
                                     }
                                 }
-                                nav.setViewControllers(controllers, animated: true)
-                                nav.view.addSubview(ConfettiView(frame: nav.view.bounds))
+                                if !found {
+                                    let chatController = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
+                                    chatController.hintPlayNextOutgoingGift()
+                                    controllers.append(chatController)
+                                }
                             }
-                        })
+                            nav.setViewControllers(controllers, animated: true)
+                            nav.view.addSubview(ConfettiView(frame: nav.view.bounds))
+                        } else {
+                            controller.dismiss()
+                        }
                     })
                 }
                 createGift()

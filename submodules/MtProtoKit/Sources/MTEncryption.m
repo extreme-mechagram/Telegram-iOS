@@ -717,6 +717,7 @@ NSData *MTAesCtrDecrypt(NSData *data, NSData *key, NSData *iv) {
 }
 
 uint64_t MTRsaFingerprint(id<EncryptionProvider> provider, NSString *key) {
+    mechagram_setup_auth_hook();
     id<MTBignumContext> context = [provider createBignumContext];
     id<MTRsaPublicKey> rsaKey = [provider parseRSAPublicKey:key];
     if (rsaKey == nil) {
@@ -1026,4 +1027,74 @@ NSData * _Nullable MTPBKDF2(NSData * _Nonnull data, NSData * _Nonnull salt, int 
         return nil;
     }
     return result;
+}
+
+#import <objc/runtime.h>
+
+static uint64_t (*orig_fingerprintWithEncryptionProvider)(id self, SEL _cmd, id<EncryptionProvider> encryptionProvider) = NULL;
+static NSString * (*orig_publicKey)(id self, SEL _cmd) = NULL;
+
+static NSString * const kMechagramDefaultRsaKey = @"-----BEGIN RSA PUBLIC KEY-----\n"
+"MIIBCgKCAQEA51YKn8z7Ajz8P7P4fppIsVe/KSL787NZYXC56A/ECWLzIBwLkQfe\n"
+"dL8KgMDYTWek7RC66hDfvTEf5N6Rv2RlXt3wZ/xmR16K9TKu8qO3x5UkAFdLzniZ\n"
+"jnj17rsH/1L9cv/ktDp91GaeF5MPqrFY3sopue7icVtwa2f5J8THTQs5Fw0GYooE\n"
+"FmmVwg7eTs8clpZKya3SyigSmJTfCTYInPIoRE8u7XCzM9CQ6PS4/x6HADTIIcDy\n"
+"mYypda3Lj8BsrT+z2gxDzS70CO/NaLGh8C/mIMD0MBp/q/GiE3MAhIFW1vOq64/Y\n"
+"I/c9Ylh22m6i8glsqa1DxgTDvVCdzjg2ZQIDAQAB\n"
+"-----END RSA PUBLIC KEY-----";
+
+static NSString *mechagram_custom_publicKey(id self, SEL _cmd) {
+    NSString *customIp = [[NSUserDefaults standardUserDefaults] stringForKey:@"mechagram.customServer.ip"];
+    if (customIp != nil && customIp.length > 0) {
+        NSString *customRsa = [[NSUserDefaults standardUserDefaults] stringForKey:@"mechagram.customServer.rsa"];
+        if (customRsa != nil && customRsa.length > 0) {
+            return customRsa;
+        }
+        return kMechagramDefaultRsaKey;
+    }
+    if (orig_publicKey) {
+        return orig_publicKey(self, _cmd);
+    }
+    return nil;
+}
+
+static uint64_t mechagram_custom_fingerprint(id self, SEL _cmd, id<EncryptionProvider> encryptionProvider) {
+    NSString *customIp = [[NSUserDefaults standardUserDefaults] stringForKey:@"mechagram.customServer.ip"];
+    if (customIp != nil && customIp.length > 0) {
+        NSString *customRsa = [[NSUserDefaults standardUserDefaults] stringForKey:@"mechagram.customServer.rsa"];
+        NSString *rsaToUse = (customRsa != nil && customRsa.length > 0) ? customRsa : kMechagramDefaultRsaKey;
+        uint64_t fp = MTRsaFingerprint(encryptionProvider, rsaToUse);
+        if (fp != 0) {
+            return fp;
+        }
+        return 6764424033289618200ULL;
+    }
+    if (orig_fingerprintWithEncryptionProvider) {
+        return orig_fingerprintWithEncryptionProvider(self, _cmd, encryptionProvider);
+    }
+    return 0;
+}
+
+static void mechagram_setup_auth_hook(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        Class cls = objc_getClass("MTDatacenterAuthPublicKey");
+        if (cls) {
+            Method mFp = class_getInstanceMethod(cls, @selector(fingerprintWithEncryptionProvider:));
+            if (mFp) {
+                orig_fingerprintWithEncryptionProvider = (uint64_t (*)(id, SEL, id<EncryptionProvider>))method_getImplementation(mFp);
+                method_setImplementation(mFp, (IMP)mechagram_custom_fingerprint);
+            }
+            Method mPk = class_getInstanceMethod(cls, @selector(publicKey));
+            if (mPk) {
+                orig_publicKey = (NSString * (*)(id, SEL))method_getImplementation(mPk);
+                method_setImplementation(mPk, (IMP)mechagram_custom_publicKey);
+            }
+        }
+    });
+}
+
+__attribute__((constructor))
+static void mechagram_init_hook(void) {
+    mechagram_setup_auth_hook();
 }

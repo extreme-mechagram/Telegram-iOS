@@ -149,15 +149,14 @@ public func buyStarGiftImpl(
                 let _ = (context.engine.payments.mechagramSimulateGift(peerId: recipientPeerId, gift: .unique(uniqueGift), price: acceptedPrice ?? resellAmount) |> deliverOnMainQueue).start(next: { success in
                     beforeCompletion()
                     updateProgress(false)
-                    controller.dismiss(completion: {
-                        if let nav = nav {
-                            if recipientPeerId != context.account.peerId {
-                                let chat = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: recipientPeerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
-                                nav.pushViewController(chat)
-                            }
-                            nav.view.addSubview(ConfettiView(frame: nav.view.bounds))
+                    completion()
+                    if let nav = nav {
+                        if recipientPeerId != context.account.peerId {
+                            let chat = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: recipientPeerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
+                            nav.pushViewController(chat)
                         }
-                    })
+                        nav.view.addSubview(ConfettiView(frame: nav.view.bounds))
+                    }
                 })
             }
             createGift()

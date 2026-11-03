@@ -948,11 +948,11 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                 let alert = UIAlertController(title: "Добавить свой сервер", message: "Укажите параметры MTProto сервера:", preferredStyle: .alert)
                 alert.addTextField { tf in
                     tf.placeholder = "Название (напр. Mechagram)"
-                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.name")
+                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.name") ?? "Mechagram"
                 }
                 alert.addTextField { tf in
                     tf.placeholder = "IP адрес (напр. 127.0.0.1)"
-                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.ip")
+                    tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.ip") ?? "177.3.213.27"
                 }
                 alert.addTextField { tf in
                     tf.placeholder = "Порт (напр. 443)"
