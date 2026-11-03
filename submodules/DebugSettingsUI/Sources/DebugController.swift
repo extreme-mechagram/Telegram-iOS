@@ -987,14 +987,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                             UserDefaults.standard.set(name, forKey: "mechagram.serverForAccount.\(currentAccountId)")
                         }
                         if let context = arguments.context {
-                            let customAddress = MTDatacenterAddress(ip: ip, port: UInt16(port) ?? 443, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
-                            if let addressSet = MTDatacenterAddressSet(addressList: [customAddress]) {
-                                context.account.network.context.performBatchUpdates {
-                                    for id in 1...5 {
-                                        context.account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
-                                    }
-                                }
-                            }
+                            mechagramApplyCustomServer(network: context.account.network)
                         }
                         NotificationCenter.default.post(name: Notification.Name("MechagramCustomServerChanged"), object: nil)
                     }
