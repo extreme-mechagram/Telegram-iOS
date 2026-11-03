@@ -507,8 +507,12 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         super.didLoad()
         
         self.titleNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
-        self.phoneAndCountryNode.numberNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
-        self.phoneAndCountryNode.countryButton.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
+        let numberTap = UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:)))
+        numberTap.cancelsTouchesInView = false
+        self.numberNode.view.addGestureRecognizer(numberTap)
+        let countryTap = UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:)))
+        countryTap.cancelsTouchesInView = false
+        self.phoneAndCountryNode.countryButton.view.addGestureRecognizer(countryTap)
         #if DEBUG && false
         self.noticeNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugQrTap(_:))))
         #endif
