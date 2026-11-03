@@ -325,10 +325,10 @@ public final class AuthorizationSequenceSplashController: ViewController {
                 NotificationCenter.default.post(name: Notification.Name("MechagramCustomServerChanged"), object: nil)
                 proceed()
             }))
-            strongSelf.present(editAlert, in: .window(.root))
+            strongSelf.present(editAlert, animated: true)
         }))
         
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        self.present(alert, in: .window(.root))
+        self.present(alert, animated: true)
     }
 }

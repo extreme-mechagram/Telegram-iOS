@@ -311,13 +311,13 @@ extension PeerInfoScreenNode {
                             sharedContext.beginNewAuth(testingEnvironment: testingEnvironment)
                         }))
                         if let controller = strongSelf.controller {
-                            controller.present(editAlert, in: .window(.root))
+                            controller.present(editAlert, animated: true)
                         }
                     }))
                     
                     alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
                     if let controller = strongSelf.controller {
-                        controller.present(alert, in: .window(.root))
+                        controller.present(alert, animated: true)
                     } else {
                         sharedContext.beginNewAuth(testingEnvironment: testingEnvironment)
                     }
