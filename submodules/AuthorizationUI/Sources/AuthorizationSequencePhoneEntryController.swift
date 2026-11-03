@@ -165,11 +165,16 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
             strongSelf.view.endEditing(true)
             self?.present(debugController(sharedContext: strongSelf.sharedContext, context: nil, modal: true), in: .window(.root), with: ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
         }, hasOtherAccounts: self.otherAccountPhoneNumbers.0 != nil)
+        mechagramApplyCustomServer(network: self.network)
+        if let account = self.account {
+            mechagramApplyCustomServer(network: account.network)
+        }
         self.controllerNode.accountUpdated = { [weak self] account in
             guard let strongSelf = self else {
                 return
             }
             strongSelf.account = account
+            mechagramApplyCustomServer(network: account.network)
             strongSelf.accountUpdated?(account)
         }
         NotificationCenter.default.addObserver(forName: Notification.Name("MechagramCustomServerChanged"), object: nil, queue: .main) { [weak self] _ in

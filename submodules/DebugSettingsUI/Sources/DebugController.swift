@@ -947,20 +947,20 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: "Добавить свой сервер", label: currentServer, sectionId: self.section, style: .blocks, action: {
                 let alert = UIAlertController(title: "Добавить свой сервер", message: "Укажите параметры MTProto сервера:", preferredStyle: .alert)
                 alert.addTextField { tf in
-                    tf.placeholder = "Название (например, Мой Сервер)"
+                    tf.placeholder = "Название (напр. Mechagram)"
                     tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.name")
                 }
                 alert.addTextField { tf in
-                    tf.placeholder = "IP адрес (например, 127.0.0.1)"
+                    tf.placeholder = "IP адрес (напр. 127.0.0.1)"
                     tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.ip")
                 }
                 alert.addTextField { tf in
-                    tf.placeholder = "Порт (например, 443)"
+                    tf.placeholder = "Порт (напр. 443)"
                     tf.keyboardType = .numberPad
                     tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443"
                 }
                 alert.addTextField { tf in
-                    tf.placeholder = "RSA ключ"
+                    tf.placeholder = "RSA публичный ключ (необязательно)"
                     tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.rsa")
                 }
                 alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))

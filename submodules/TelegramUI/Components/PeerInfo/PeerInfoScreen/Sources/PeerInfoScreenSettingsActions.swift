@@ -247,7 +247,80 @@ extension PeerInfoScreenNode {
                         navigationController.pushViewController(controller)
                     }
                 } else {
-                    strongSelf.context.sharedContext.beginNewAuth(testingEnvironment: strongSelf.context.account.testingEnvironment)
+                    let customIp = UserDefaults.standard.string(forKey: "mechagram.customServer.ip")
+                    let customName = UserDefaults.standard.string(forKey: "mechagram.customServer.name") ?? "Свой сервер"
+                    let sharedContext = strongSelf.context.sharedContext
+                    let testingEnvironment = strongSelf.context.account.testingEnvironment
+                    
+                    let alert = UIAlertController(title: "Выбор сервера", message: "Выберите сервер для входа в аккаунт", preferredStyle: .actionSheet)
+                    alert.addAction(UIAlertAction(title: "Официальный Telegram", style: .default, handler: { _ in
+                        UserDefaults.standard.removeObject(forKey: "mechagram.customServer.name")
+                        UserDefaults.standard.removeObject(forKey: "mechagram.customServer.ip")
+                        UserDefaults.standard.removeObject(forKey: "mechagram.customServer.port")
+                        UserDefaults.standard.removeObject(forKey: "mechagram.customServer.rsa")
+                        UserDefaults.standard.set("Telegram Official", forKey: "mechagram.activeCustomServerName")
+                        NotificationCenter.default.post(name: Notification.Name("MechagramCustomServerChanged"), object: nil)
+                        sharedContext.beginNewAuth(testingEnvironment: testingEnvironment)
+                    }))
+                    
+                    if let ip = customIp, !ip.isEmpty {
+                        alert.addAction(UIAlertAction(title: "Подключиться к \(customName) (\(ip))", style: .default, handler: { _ in
+                            sharedContext.beginNewAuth(testingEnvironment: testingEnvironment)
+                        }))
+                    }
+                    
+                    alert.addAction(UIAlertAction(title: "Добавить свой сервер...", style: .default, handler: { [weak strongSelf] _ in
+                        guard let strongSelf = strongSelf else { return }
+                        let editAlert = UIAlertController(title: "Свой сервер", message: "Введите параметры сервера", preferredStyle: .alert)
+                        editAlert.addTextField { tf in
+                            tf.placeholder = "Название (напр. Mechagram)"
+                            tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.name") ?? "Mechagram"
+                        }
+                        editAlert.addTextField { tf in
+                            tf.placeholder = "IP адрес (напр. 127.0.0.1)"
+                            tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.ip")
+                        }
+                        editAlert.addTextField { tf in
+                            tf.placeholder = "Порт (напр. 443)"
+                            tf.keyboardType = .numberPad
+                            tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443"
+                        }
+                        editAlert.addTextField { tf in
+                            tf.placeholder = "RSA публичный ключ (необязательно)"
+                            tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.rsa")
+                        }
+                        editAlert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+                        editAlert.addAction(UIAlertAction(title: "Подключиться", style: .default, handler: { _ in
+                            let name = editAlert.textFields?[0].text?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            let ip = editAlert.textFields?[1].text?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            let port = editAlert.textFields?[2].text?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            let rsa = editAlert.textFields?[3].text?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            
+                            if let ip = ip, !ip.isEmpty {
+                                UserDefaults.standard.set(name?.isEmpty == false ? name : "Custom Server", forKey: "mechagram.customServer.name")
+                                UserDefaults.standard.set(ip, forKey: "mechagram.customServer.ip")
+                                UserDefaults.standard.set(port?.isEmpty == false ? port : "443", forKey: "mechagram.customServer.port")
+                                if let rsa = rsa, !rsa.isEmpty {
+                                    UserDefaults.standard.set(rsa, forKey: "mechagram.customServer.rsa")
+                                } else {
+                                    UserDefaults.standard.removeObject(forKey: "mechagram.customServer.rsa")
+                                }
+                                UserDefaults.standard.set(name?.isEmpty == false ? name : "Custom Server", forKey: "mechagram.activeCustomServerName")
+                            }
+                            NotificationCenter.default.post(name: Notification.Name("MechagramCustomServerChanged"), object: nil)
+                            sharedContext.beginNewAuth(testingEnvironment: testingEnvironment)
+                        }))
+                        if let controller = strongSelf.controller {
+                            controller.present(editAlert, in: .window(.root))
+                        }
+                    }))
+                    
+                    alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+                    if let controller = strongSelf.controller {
+                        controller.present(alert, in: .window(.root))
+                    } else {
+                        sharedContext.beginNewAuth(testingEnvironment: testingEnvironment)
+                    }
                 }
             })
         case .logout:

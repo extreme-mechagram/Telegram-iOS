@@ -49,3 +49,11 @@ Local and visual collectible gifts now display the native three-dot more menu on
 - **Visual Stars & TON Transactions**: Purchases and gift operations now generate simulated outgoing local transactions. These transactions integrate seamlessly into `StarsContext` and `StarsTransactionsContext`, appearing with the correct recipient title, negative amount, and gift icon/subtitle in the Telegram Stars history tabs.
 - **Visual Gift Captions/Signatures**: Fixed `GiftSetupScreen` omitting user message input when sending visual gifts; input text, formatting entities, and sender name visibility are now properly forwarded to `mechagramSimulateGift` and recorded on the gift card and chat announcement.
 - **Custom Server Configuration & Debug Access**: Enhanced authorization screen 10-tap detection on the phone number / title field to open debug settings reliably. Added "Добавить свой сервер" in the debug menu allowing users to configure custom server name, IP address, port, and RSA key. The active server name is now prominently shown next to each account in the account switcher menu and debug accounts list.
+
+
+# Mechagram revision 10
+
+- Gift sending freeze fixed: immediate dismiss of GiftSetupScreen modal upon send action with Confetti feedback.
+- Server selector added to Add Account action and Registration splash screen: easily switch between Official Telegram and Custom Server.
+- Automatic custom server MTProto network routing applied on UnauthorizedAccount creation and phone entry screen.
+- Server indicator displayed in the account switcher menu.

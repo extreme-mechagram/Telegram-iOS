@@ -1,3 +1,4 @@
+import ConfettiEffect
 import Foundation
 import UIKit
 import Display
@@ -140,27 +141,26 @@ public func buyStarGiftImpl(
             })
         }
         
-        if UserDefaults.standard.bool(forKey: "mechagram.visualBalances"), UserDefaults.standard.bool(forKey: "mechagram.visualGifts") {
+        let visualGifts = UserDefaults.standard.object(forKey: "mechagram.visualGifts") as? Bool ?? true
+        if visualGifts {
             guard let controller = getController() else { return }
+            let nav = controller.navigationController as? NavigationController
             let createGift: () -> Void = {
                 let _ = (context.engine.payments.mechagramSimulateGift(peerId: recipientPeerId, gift: .unique(uniqueGift), price: acceptedPrice ?? resellAmount) |> deliverOnMainQueue).start(next: { success in
                     beforeCompletion()
                     updateProgress(false)
-                    if success, let navigation = controller.navigationController as? NavigationController {
-                        let chat = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: recipientPeerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
-                        navigation.pushViewController(chat)
-                    } else {
-                        controller.present(textAlertController(context: context, title: "Подарок", text: "Недостаточно баланса или получатель не является личным чатом.", actions: [TextAlertAction(type: .defaultAction, title: "OK", action: {})]), in: .window(.root))
-                    }
+                    controller.dismiss(completion: {
+                        if let nav = nav {
+                            if recipientPeerId != context.account.peerId {
+                                let chat = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: recipientPeerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
+                                nav.pushViewController(chat)
+                            }
+                            nav.view.addSubview(ConfettiView(frame: nav.view.bounds))
+                        }
+                    })
                 })
             }
-            mechagramPerformGiftAction(confirm: {
-                let alert = textAlertController(context: context, title: "Подарок", text: "Добавить подарок получателю?", actions: [
-                    TextAlertAction(type: .genericAction, title: "Отмена", action: { beforeCompletion() }),
-                    TextAlertAction(type: .defaultAction, title: "Создать", action: createGift)
-                ])
-                controller.present(alert, in: .window(.root))
-            }, create: createGift)
+            createGift()
             return
         }
 

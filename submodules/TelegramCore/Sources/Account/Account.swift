@@ -114,6 +114,7 @@ public class UnauthorizedAccount {
         self.testingEnvironment = testingEnvironment
         self.postbox = postbox
         self.network = network
+        mechagramApplyCustomServer(network: network)
         let updateLoginTokenPipe = self.updateLoginTokenPipe
         let serviceNotificationPipe = self.serviceNotificationPipe
         let masterDatacenterId = Int32(network.mtProto.datacenterId)

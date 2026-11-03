@@ -481,6 +481,7 @@ private final class GiftSetupScreenComponent: Component {
                 let giftText = textInputText.string.isEmpty ? nil : textInputText.string
                 let nameHidden = self.hideName
                 let price = gift.price + (self.includeUpgrade ? (gift.upgradeStars ?? 0) : 0)
+                let nav = controller.navigationController as? NavigationController
                 let createGift: () -> Void = {
                     let _ = (context.engine.payments.mechagramSimulateGift(
                         peerId: peerId,
@@ -490,24 +491,31 @@ private final class GiftSetupScreenComponent: Component {
                         entities: entities,
                         nameHidden: nameHidden
                     ) |> deliverOnMainQueue).start(next: { success in
-                        if success, let navigation = controller.navigationController as? NavigationController {
-                            var controllers = navigation.viewControllers.filter { !($0 is GiftSetupScreen) && !($0 is GiftOptionsScreenProtocol) }
-                            if peerId != context.account.peerId {
-                                controllers.append(context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
+                        controller.dismiss(completion: {
+                            if let nav = nav {
+                                var controllers = nav.viewControllers.filter { !($0 is GiftSetupScreen) && !($0 is GiftOptionsScreenProtocol) }
+                                if peerId != context.account.peerId {
+                                    var found = false
+                                    for c in controllers.reversed() {
+                                        if let chat = c as? ChatController, case .peer(id: peerId) = chat.chatLocation {
+                                            chat.hintPlayNextOutgoingGift()
+                                            found = true
+                                            break
+                                        }
+                                    }
+                                    if !found {
+                                        let chatController = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
+                                        chatController.hintPlayNextOutgoingGift()
+                                        controllers.append(chatController)
+                                    }
+                                }
+                                nav.setViewControllers(controllers, animated: true)
+                                nav.view.addSubview(ConfettiView(frame: nav.view.bounds))
                             }
-                            navigation.setViewControllers(controllers, animated: true)
-                        } else {
-                            controller.present(textAlertController(context: context, title: "Подарок", text: "Не удалось отправить подарок. Проверьте настройки Mechagram.", actions: [TextAlertAction(type: .defaultAction, title: "OK", action: {})]), in: .window(.root))
-                        }
+                        })
                     })
                 }
-                mechagramPerformGiftAction(confirm: {
-                    let alert = textAlertController(context: context, title: "Подарок", text: "Добавить подарок за \(price) звёзд?", actions: [
-                        TextAlertAction(type: .genericAction, title: "Отмена", action: {}),
-                        TextAlertAction(type: .defaultAction, title: "Создать", action: createGift)
-                    ])
-                    controller.present(alert, in: .window(.root))
-                }, create: createGift)
+                createGift()
                 return
             }
             guard let starsContext = context.starsContext, let starsState = starsContext.currentState else { return }

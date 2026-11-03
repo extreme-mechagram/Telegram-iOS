@@ -7175,6 +7175,16 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         let strings = self.presentationData.strings
         
         var items: [ContextMenuItem] = []
+        let activeServerName = UserDefaults.standard.string(forKey: "mechagram.activeCustomServerName") ?? (UserDefaults.standard.string(forKey: "mechagram.customServer.ip") != nil ? (UserDefaults.standard.string(forKey: "mechagram.customServer.name") ?? "Свой сервер") : "Telegram Official")
+        items.append(.action(ContextMenuActionItem(text: "🌐 Сервер: \(activeServerName)", icon: { theme in
+            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Add"), color: theme.contextMenu.primaryColor)
+        }, action: { [weak self] _, f in
+            guard let strongSelf = self else {
+                return
+            }
+            strongSelf.controllerNode.openSettings(section: .addAccount)
+            f(.dismissWithoutContent)
+        })))
         items.append(.action(ContextMenuActionItem(text: strings.Settings_AddAccount, icon: { theme in
             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Add"), color: theme.contextMenu.primaryColor)
         }, action: { [weak self] _, f in
