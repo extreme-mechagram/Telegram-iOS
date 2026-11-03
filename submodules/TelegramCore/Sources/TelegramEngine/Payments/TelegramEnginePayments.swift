@@ -78,12 +78,17 @@ public extension TelegramEngine {
             return self.account.postbox.transaction { transaction -> Bool in
                 return mechagramWithProfileGiftLock {
                 let settings = UserDefaults.standard
-                guard settings.bool(forKey: "mechagram.visualBalances"), settings.bool(forKey: "mechagram.visualGifts"), peerId.namespace == Namespaces.Peer.CloudUser else {
+                let visualGiftsEnabled = settings.object(forKey: "mechagram.visualGifts") as? Bool ?? true
+                guard visualGiftsEnabled else {
+                    return false
+                }
+                guard peerId.namespace == Namespaces.Peer.CloudUser || peerId.namespace == Namespaces.Peer.CloudChannel || peerId == self.account.peerId else {
                     return false
                 }
                 let isTon = price.currency == .ton
                 let key = isTon ? "mechagram.visualTON" : "mechagram.visualStars"
-                guard let raw = settings.string(forKey: key), let remaining = mechagramDemoBalanceAfterPurchase(raw: raw, value: price.amount.value, nanos: price.amount.nanos, isTon: isTon) else { return false }
+                let raw = settings.string(forKey: key) ?? (isTon ? "1000.0" : "100000")
+                let remaining = mechagramDemoBalanceAfterPurchase(raw: raw, value: price.amount.value, nanos: price.amount.nanos, isTon: isTon) ?? (isTon ? "1000.0" : "100000")
                 let gift = mechagramGiftForRecipient(gift, peerId: peerId)
                 let marker = "mechagram:local-gift:v2"
                 let action: TelegramMediaAction

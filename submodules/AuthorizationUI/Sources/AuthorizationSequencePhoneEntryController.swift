@@ -172,6 +172,26 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
             strongSelf.account = account
             strongSelf.accountUpdated?(account)
         }
+        NotificationCenter.default.addObserver(forName: Notification.Name("MechagramCustomServerChanged"), object: nil, queue: .main) { [weak self] _ in
+            guard let strongSelf = self else { return }
+            if let ip = UserDefaults.standard.string(forKey: "mechagram.customServer.ip"), !ip.isEmpty {
+                let port = UInt16(UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443") ?? 443
+                let customAddress = MTDatacenterAddress(ip: ip, port: port, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
+                let addressSet = MTDatacenterAddressSet(addressList: [customAddress])
+                strongSelf.network.context.performBatchUpdates {
+                    for id in 1...5 {
+                        strongSelf.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                    }
+                }
+                if let account = strongSelf.account {
+                    account.network.context.performBatchUpdates {
+                        for id in 1...5 {
+                            account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                        }
+                    }
+                }
+            }
+        }
         self.controllerNode.retryPasskey = { [weak self] in
             guard let self else {
                 return
@@ -405,6 +425,23 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
     @objc func nextPressed() {
         guard self.confirmationController == nil else {
             return
+        }
+        if let ip = UserDefaults.standard.string(forKey: "mechagram.customServer.ip"), !ip.isEmpty {
+            let port = UInt16(UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443") ?? 443
+            let customAddress = MTDatacenterAddress(ip: ip, port: port, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
+            let addressSet = MTDatacenterAddressSet(addressList: [customAddress])
+            self.network.context.performBatchUpdates {
+                for id in 1...5 {
+                    self.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                }
+            }
+            if let account = self.account {
+                account.network.context.performBatchUpdates {
+                    for id in 1...5 {
+                        account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                    }
+                }
+            }
         }
         let (_, _, number) = self.controllerNode.codeAndNumber
         if !number.isEmpty {

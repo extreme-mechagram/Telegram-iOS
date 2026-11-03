@@ -471,7 +471,8 @@ private final class GiftSetupScreenComponent: Component {
             let context = component.context
             let peerId = component.peerId
 
-            if UserDefaults.standard.bool(forKey: "mechagram.visualBalances"), UserDefaults.standard.bool(forKey: "mechagram.visualGifts"), case let .starGift(gift, _) = component.subject, let controller = environment.controller() {
+            let visualGiftsEnabled = UserDefaults.standard.object(forKey: "mechagram.visualGifts") as? Bool ?? true
+            if visualGiftsEnabled, case let .starGift(gift, _) = component.subject, let controller = environment.controller() {
                 var textInputText = NSAttributedString()
                 if let inputPanelView = self.inputPanel.view as? MessageInputPanelComponent.View, case let .text(text) = inputPanelView.getSendMessageInput() {
                     textInputText = text
@@ -491,10 +492,12 @@ private final class GiftSetupScreenComponent: Component {
                     ) |> deliverOnMainQueue).start(next: { success in
                         if success, let navigation = controller.navigationController as? NavigationController {
                             var controllers = navigation.viewControllers.filter { !($0 is GiftSetupScreen) && !($0 is GiftOptionsScreenProtocol) }
-                            controllers.append(context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
+                            if peerId != context.account.peerId {
+                                controllers.append(context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
+                            }
                             navigation.setViewControllers(controllers, animated: true)
                         } else {
-                            controller.present(textAlertController(context: context, title: "Подарок", text: "Недостаточно звёзд или получатель не является личным чатом.", actions: [TextAlertAction(type: .defaultAction, title: "OK", action: {})]), in: .window(.root))
+                            controller.present(textAlertController(context: context, title: "Подарок", text: "Не удалось отправить подарок. Проверьте настройки Mechagram.", actions: [TextAlertAction(type: .defaultAction, title: "OK", action: {})]), in: .window(.root))
                         }
                     })
                 }

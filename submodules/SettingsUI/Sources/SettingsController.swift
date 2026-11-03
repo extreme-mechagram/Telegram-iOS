@@ -129,7 +129,7 @@ private enum ExteraPortSettingsEntry: ItemListNodeEntry {
 
 public func exteraPortSettingsController(context: AccountContext) -> ViewController {
     let keys = ["exteraPort.showMessageDetails", "exteraPort.hideOwnPhoneNumber", "exteraPort.hideStories", "exteraPort.messageSeconds", "exteraPort.fullCounts", "mechagram.keepDeleted", "mechagram.visualBalances", "mechagram.visualGifts", mechagramSkipGiftConfirmationKey]
-    let defaults = [true, false, false, false, false, true, false, false, true]
+    let defaults = [true, false, false, false, false, true, true, true, true]
     let readValues: () -> [Bool] = {
         return keys.enumerated().map { index, key in
             if key == mechagramSkipGiftConfirmationKey { return mechagramSkipGiftConfirmation() }
@@ -202,8 +202,8 @@ public func exteraPortSettingsController(context: AccountContext) -> ViewControl
         for (index, label) in titles.enumerated() {
             entries.append(.toggle(Int32(index), label, values[index]))
         }
-        entries.append(.balance(0, "Stars: " + (UserDefaults.standard.string(forKey: "mechagram.visualStars") ?? "—"), false))
-        entries.append(.balance(1, "TON: " + (UserDefaults.standard.string(forKey: "mechagram.visualTON") ?? "—"), true))
+        entries.append(.balance(0, "Stars: " + (UserDefaults.standard.string(forKey: "mechagram.visualStars") ?? "100 000"), false))
+        entries.append(.balance(1, "TON: " + (UserDefaults.standard.string(forKey: "mechagram.visualTON") ?? "1 000"), true))
         entries.append(.hide(isRussian ? "Скрыть пункт настроек мода" : "Hide mod settings entry"))
         entries.append(.footer(footer + (isRussian ? " Чтобы вернуть скрытый пункт, удерживайте строку «Оформление» в настройках Telegram. Функции мода продолжают работать. Подарки и действия с ними — копии Mechagram; настоящие покупки используют настоящий баланс." : " To restore the hidden entry, hold Appearance in Telegram settings. Mod features continue working. Gifts and their actions are Mechagram copies; real purchases use the real balance.")))
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))

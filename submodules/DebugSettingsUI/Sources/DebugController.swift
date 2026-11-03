@@ -964,6 +964,14 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     tf.text = UserDefaults.standard.string(forKey: "mechagram.customServer.rsa")
                 }
                 alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+                alert.addAction(UIAlertAction(title: "Сбросить на Official", style: .destructive, handler: { _ in
+                    UserDefaults.standard.removeObject(forKey: "mechagram.customServer.name")
+                    UserDefaults.standard.removeObject(forKey: "mechagram.customServer.ip")
+                    UserDefaults.standard.removeObject(forKey: "mechagram.customServer.port")
+                    UserDefaults.standard.removeObject(forKey: "mechagram.customServer.rsa")
+                    UserDefaults.standard.set("Telegram Official", forKey: "mechagram.activeCustomServerName")
+                    NotificationCenter.default.post(name: Notification.Name("MechagramCustomServerChanged"), object: nil)
+                }))
                 alert.addAction(UIAlertAction(title: "Подключить", style: .default, handler: { _ in
                     let name = alert.textFields?[0].text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     let ip = alert.textFields?[1].text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -977,6 +985,15 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         UserDefaults.standard.set(rsa, forKey: "mechagram.customServer.rsa")
                         if let currentAccountId = arguments.context?.account.id.int64 {
                             UserDefaults.standard.set(name, forKey: "mechagram.serverForAccount.\(currentAccountId)")
+                        }
+                        if let context = arguments.context {
+                            let customAddress = MTDatacenterAddress(ip: ip, port: UInt16(port) ?? 443, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
+                            let addressSet = MTDatacenterAddressSet(addressList: [customAddress])
+                            context.account.network.context.performBatchUpdates {
+                                for id in 1...5 {
+                                    context.account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                                }
+                            }
                         }
                         NotificationCenter.default.post(name: Notification.Name("MechagramCustomServerChanged"), object: nil)
                     }
