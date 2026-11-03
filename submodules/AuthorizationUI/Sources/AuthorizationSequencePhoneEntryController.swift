@@ -177,16 +177,17 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
             if let ip = UserDefaults.standard.string(forKey: "mechagram.customServer.ip"), !ip.isEmpty {
                 let port = UInt16(UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443") ?? 443
                 let customAddress = MTDatacenterAddress(ip: ip, port: port, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
-                let addressSet = MTDatacenterAddressSet(addressList: [customAddress])
-                strongSelf.network.context.performBatchUpdates {
-                    for id in 1...5 {
-                        strongSelf.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
-                    }
-                }
-                if let account = strongSelf.account {
-                    account.network.context.performBatchUpdates {
+                if let addressSet = MTDatacenterAddressSet(addressList: [customAddress]) {
+                    strongSelf.network.context.performBatchUpdates {
                         for id in 1...5 {
-                            account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                            strongSelf.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                        }
+                    }
+                    if let account = strongSelf.account {
+                        account.network.context.performBatchUpdates {
+                            for id in 1...5 {
+                                account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                            }
                         }
                     }
                 }
@@ -429,16 +430,17 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         if let ip = UserDefaults.standard.string(forKey: "mechagram.customServer.ip"), !ip.isEmpty {
             let port = UInt16(UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443") ?? 443
             let customAddress = MTDatacenterAddress(ip: ip, port: port, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
-            let addressSet = MTDatacenterAddressSet(addressList: [customAddress])
-            self.network.context.performBatchUpdates {
-                for id in 1...5 {
-                    self.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
-                }
-            }
-            if let account = self.account {
-                account.network.context.performBatchUpdates {
+            if let addressSet = MTDatacenterAddressSet(addressList: [customAddress]) {
+                self.network.context.performBatchUpdates {
                     for id in 1...5 {
-                        account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                        self.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                    }
+                }
+                if let account = self.account {
+                    account.network.context.performBatchUpdates {
+                        for id in 1...5 {
+                            account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                        }
                     }
                 }
             }

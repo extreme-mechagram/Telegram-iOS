@@ -3,10 +3,11 @@ func mechagramApplyCustomServer(network: Network) {
     if let ip = UserDefaults.standard.string(forKey: "mechagram.customServer.ip"), !ip.isEmpty {
         let port = UInt16(UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443") ?? 443
         let customAddress = MTDatacenterAddress(ip: ip, port: port, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
-        let addressSet = MTDatacenterAddressSet(addressList: [customAddress])
-        network.context.performBatchUpdates {
-            for id in 1...5 {
-                network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+        if let addressSet = MTDatacenterAddressSet(addressList: [customAddress]) {
+            network.context.performBatchUpdates {
+                for id in 1...5 {
+                    network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                }
             }
         }
     }

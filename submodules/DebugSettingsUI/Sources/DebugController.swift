@@ -988,10 +988,11 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         }
                         if let context = arguments.context {
                             let customAddress = MTDatacenterAddress(ip: ip, port: UInt16(port) ?? 443, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)
-                            let addressSet = MTDatacenterAddressSet(addressList: [customAddress])
-                            context.account.network.context.performBatchUpdates {
-                                for id in 1...5 {
-                                    context.account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                            if let addressSet = MTDatacenterAddressSet(addressList: [customAddress]) {
+                                context.account.network.context.performBatchUpdates {
+                                    for id in 1...5 {
+                                        context.account.network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
+                                    }
                                 }
                             }
                         }
