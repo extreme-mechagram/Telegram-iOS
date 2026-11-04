@@ -169,7 +169,10 @@ typedef enum {
     _authKey = nil;
     _encryptedClientData = nil;
     
-    if (mtProto.cdn) {
+    if (!mtProto.cdn && mtProto.context.mechagramCustomPublicKey.length != 0) {
+        _publicKeys = @[[[MTDatacenterAuthPublicKey alloc] initWithPublicKey:mtProto.context.mechagramCustomPublicKey]];
+        _stage = MTDatacenterAuthStagePQ;
+    } else if (mtProto.cdn) {
         _publicKeys = [self convertPublicKeysFromDictionaries:[mtProto.context publicKeysForDatacenterWithId:mtProto.datacenterId]];
         if (_publicKeys.count == 0) {
             _stage = MTDatacenterAuthStageWaitingForPublicKeys;

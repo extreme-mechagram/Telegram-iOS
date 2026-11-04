@@ -141,11 +141,18 @@ public extension TelegramEngine {
                     isMarketResale: isMarketResale,
                     starGift: gift
                 )
-                mechagramRecordLocalTransaction(accountId: self.account.peerId, transaction: localTx)
-
-                NotificationCenter.default.post(name: Notification.Name("MechagramLocalProfileGiftsChanged"), object: nil)
+                mechagramRecordLocalTransaction(accountId: self.account.peerId, transaction: localTx, notify: false)
                 return true
                 }
+            }
+            |> map { success in
+                if success {
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: Notification.Name("MechagramLocalTransactionsChanged"), object: nil)
+                        NotificationCenter.default.post(name: Notification.Name("MechagramLocalProfileGiftsChanged"), object: nil)
+                    }
+                }
+                return success
             }
         }
         

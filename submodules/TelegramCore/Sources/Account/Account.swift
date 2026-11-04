@@ -1,20 +1,3 @@
-
-public func mechagramApplyCustomServer(network: Network) {
-    if let ip = UserDefaults.standard.string(forKey: "mechagram.customServer.ip"), !ip.isEmpty {
-        let port = UInt16(UserDefaults.standard.string(forKey: "mechagram.customServer.port") ?? "443") ?? 443
-        var addresses = [MTDatacenterAddress(ip: ip, port: port, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil)]
-        let altPort: UInt16 = (port == 443) ? 2398 : 443
-        addresses.append(MTDatacenterAddress(ip: ip, port: altPort, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil))
-        if let addressSet = MTDatacenterAddressSet(addressList: addresses) {
-            network.context.performBatchUpdates {
-                for id in 1...5 {
-                    network.context.updateAddressSetForDatacenter(withId: id, addressSet: addressSet, forceUpdateSchemes: true)
-                }
-            }
-        }
-    }
-}
-
 import Foundation
 import Postbox
 import SwiftSignalKit
@@ -116,6 +99,7 @@ public class UnauthorizedAccount {
         self.testingEnvironment = testingEnvironment
         self.postbox = postbox
         self.network = network
+        network.mechagramCanSelectServer = true
         mechagramApplyCustomServer(network: network)
         let updateLoginTokenPipe = self.updateLoginTokenPipe
         let serviceNotificationPipe = self.serviceNotificationPipe
@@ -246,6 +230,7 @@ public class UnauthorizedAccount {
                 }
             }
             |> mapToSignal { localizationSettings, proxySettings, networkSettings, appConfiguration -> Signal<UnauthorizedAccount, NoError> in
+                mechagramBindServerSelection(accountId: self.id)
                 return initializedNetwork(accountId: self.id, arguments: self.networkArguments, supplementary: false, datacenterId: Int(masterDatacenterId), keychain: keychain, basePath: self.basePath, testingEnvironment: self.testingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: nil, useRequestTimeoutTimers: false, appConfiguration: appConfiguration)
                 |> map { network in
                     let updated = UnauthorizedAccount(accountManager: accountManager, networkArguments: self.networkArguments, id: self.id, rootPath: self.rootPath, basePath: self.basePath, testingEnvironment: self.testingEnvironment, postbox: self.postbox, network: network)
@@ -344,6 +329,7 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
                         if let accountState = accountState {
                             switch accountState {
                                 case let unauthorizedState as UnauthorizedAccountState:
+                                    mechagramBindServerSelection(accountId: id)
                                     return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: Int(unauthorizedState.masterDatacenterId), keychain: keychain, basePath: path, testingEnvironment: unauthorizedState.isTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: nil, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
                                         |> map { network -> AccountResult in
                                             return .unauthorized(UnauthorizedAccount(accountManager: accountManager, networkArguments: networkArguments, id: id, rootPath: rootPath, basePath: path, testingEnvironment: unauthorizedState.isTestingEnvironment, postbox: postbox, network: network, shouldKeepAutoConnection: shouldKeepAutoConnection))
@@ -369,6 +355,7 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
                         let initialDatacenterId: Int = 2
                         #endif
                         
+                        mechagramBindServerSelection(accountId: id)
                         return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: initialDatacenterId, keychain: keychain, basePath: path, testingEnvironment: beginWithTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: nil, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
                         |> map { network -> AccountResult in
                             return .unauthorized(UnauthorizedAccount(accountManager: accountManager, networkArguments: networkArguments, id: id, rootPath: rootPath, basePath: path, testingEnvironment: beginWithTestingEnvironment, postbox: postbox, network: network, shouldKeepAutoConnection: shouldKeepAutoConnection))
@@ -1266,6 +1253,7 @@ public class Account {
         self.network = network
         self.networkArguments = networkArguments
         self.peerId = peerId
+        network.mechagramCanSelectServer = false
         
         self.auxiliaryMethods = auxiliaryMethods
         self.supplementary = supplementary

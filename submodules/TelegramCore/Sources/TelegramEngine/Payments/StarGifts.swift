@@ -292,6 +292,7 @@ public struct MechagramLocalStarTransaction: Codable, Equatable {
     }
 }
 
+// MECHAGRAM_TRANSACTION_STORE_POLICY_BEGIN
 private let mechagramTransactionsLock = NSLock()
 
 private func mechagramTransactionsKey(_ accountId: PeerId) -> String {
@@ -301,22 +302,27 @@ private func mechagramTransactionsKey(_ accountId: PeerId) -> String {
 public func mechagramReadLocalTransactions(accountId: PeerId) -> [MechagramLocalStarTransaction] {
     mechagramTransactionsLock.lock()
     defer { mechagramTransactionsLock.unlock() }
+    return mechagramReadLocalTransactionsUnlocked(accountId: accountId)
+}
+
+private func mechagramReadLocalTransactionsUnlocked(accountId: PeerId) -> [MechagramLocalStarTransaction] {
     guard let data = UserDefaults.standard.data(forKey: mechagramTransactionsKey(accountId)) else {
         return []
     }
     return (try? JSONDecoder().decode([MechagramLocalStarTransaction].self, from: data)) ?? []
 }
 
-public func mechagramRecordLocalTransaction(accountId: PeerId, transaction: MechagramLocalStarTransaction) {
+public func mechagramRecordLocalTransaction(accountId: PeerId, transaction: MechagramLocalStarTransaction, notify: Bool = true) {
     mechagramTransactionsLock.lock()
-    defer { mechagramTransactionsLock.unlock() }
-    var list = mechagramReadLocalTransactions(accountId: accountId)
+    var list = mechagramReadLocalTransactionsUnlocked(accountId: accountId)
     list.insert(transaction, at: 0)
     if let data = try? JSONEncoder().encode(list) {
         UserDefaults.standard.set(data, forKey: mechagramTransactionsKey(accountId))
     }
-    NotificationCenter.default.post(name: Notification.Name("MechagramLocalTransactionsChanged"), object: nil)
+    mechagramTransactionsLock.unlock()
+    if notify { NotificationCenter.default.post(name: Notification.Name("MechagramLocalTransactionsChanged"), object: nil) }
 }
+// MECHAGRAM_TRANSACTION_STORE_POLICY_END
 
 public func mechagramGetLocalStarsTransactions(account: Account, ton: Bool, mode: StarsTransactionsContext.Mode) -> [StarsContext.State.Transaction] {
     let raw = mechagramReadLocalTransactions(accountId: account.peerId)

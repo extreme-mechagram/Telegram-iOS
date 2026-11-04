@@ -39,11 +39,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git hash-object submodules/TelegramCore/Sources/Network/Network.swift)" = "5410e714b2501d8233d4c55e091b81f263f4c384"
-          test "$(git hash-object submodules/MtProtoKit/Sources/MTContext.m)" = "6f26b62be7e8b18ac294783c68c9046a5665f806"
-          test "$(git hash-object submodules/MtProtoKit/Sources/MTDatacenterAuthMessageService.m)" = "882d6c6118f6876febbcc0356bcef825fe384d4a"
+          python3 port/verify-mechagram-network.py
       - name: Test Mechagram retention and local gift policies
         run: python3 port/test-mechagram-policies.py
+      - name: Test gift sending deadlock and custom server regressions
+        run: python3 port/test-mechagram-regressions.py
       - name: Test Mechagram gift sync ledger
         run: python3 port/sync/test_server.py
       - name: Restore compilation cache

@@ -955,6 +955,9 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
 
 - (MTDatacenterAddressSet *)addressSetForDatacenterWithId:(NSInteger)datacenterId
 {
+    if (self.mechagramCustomAddressSet != nil && datacenterId >= 1 && datacenterId <= 5) {
+        return self.mechagramCustomAddressSet;
+    }
     __block MTDatacenterAddressSet *result = nil;
     [[MTContext contextQueue] dispatchOnQueue:^
     {
@@ -1230,7 +1233,7 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
             __weak MTContext *weakSelf = self;
             MTDatacenterAddressSet *initialAddressSet = [self addressSetForDatacenterWithId:datacenterId];
             NSMutableArray *addressList = [[NSMutableArray alloc] initWithArray:initialAddressSet.addressList];
-            MTDatacenterAddressSet *seedAddress = _datacenterSeedAddressSetById[@(datacenterId)];
+            MTDatacenterAddressSet *seedAddress = (self.mechagramCustomAddressSet != nil && datacenterId >= 1 && datacenterId <= 5) ? self.mechagramCustomAddressSet : _datacenterSeedAddressSetById[@(datacenterId)];
             if (seedAddress != nil) {
                 for (MTDatacenterAddress *address in seedAddress.addressList) {
                     if (![addressList containsObject:address]) {

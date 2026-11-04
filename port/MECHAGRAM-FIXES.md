@@ -57,3 +57,13 @@ Local and visual collectible gifts now display the native three-dot more menu on
 - Server selector added to Add Account action and Registration splash screen: easily switch between Official Telegram and Custom Server.
 - Automatic custom server MTProto network routing applied on UnauthorizedAccount creation and phone entry screen.
 - Server indicator displayed in the account switcher menu.
+
+## Gift sending and custom server regression repair (2026-11-04)
+
+Gift recording previously acquired mechagramTransactionsLock, then called the public reader which acquired that same NSLock. The writer now calls an unlocked reader under its existing lock. Transaction notifications occur after unlock; simulated gift creation queues UI notifications after releasing the profile lock and completing its Postbox transaction. Catalog and market flows handle false results without navigating as if creation succeeded, and expose progress while creating.
+
+Custom server selection is captured per AccountRecordId before initializing MTProto. A login controller can switch its unauthorized network; existing authorized networks retain their bound configuration. Custom RSA keys are passed explicitly into MTDatacenterAuthMessageService via MTContext; MTEncryption runtime hooks and guessed fingerprint fallbacks are removed. Transport discovery uses only custom addresses while a custom server is selected. Official fallback source is verified against the previously approved upstream blobs after stripping only these explicit custom branches.
+
+A read-only req_pq_multi probe of 177.3.213.27 succeeded on TCP 443 and 2398; the server fingerprint 18c3579ed10fe05d matches the bundled custom public key. This verifies transport and key agreement, not full account login.
+
+CI regression tests execute the production transaction storage with a bounded timeout, synchronous observer reentry and 32 concurrent writes, plus custom port/key parsing and account binding isolation. Full device validation remains required. Stop following CI when IPA compilation starts, per the user's existing preference.

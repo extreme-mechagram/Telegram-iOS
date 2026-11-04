@@ -548,7 +548,18 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                 context.setSeedAddressSetForDatacenterWithId(id, seedAddressSet: MTDatacenterAddressSet(addressList: ips.map { MTDatacenterAddress(ip: $0, port: 443, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil) }))
             }
             
+            // MECHAGRAM_NETWORK_BINDING_BEGIN
+            let serverKey = mechagramServerAccountKey(accountId)
+            context.mechagramServerAccountKey = serverKey
+            let serverConfiguration = UserDefaults.standard.dictionary(forKey: serverKey) as? [String: String] ?? [:]
+            mechagramConfigureCustomServer(context: context, configuration: serverConfiguration)
+            // MECHAGRAM_NETWORK_BINDING_END
             context.keychain = keychain
+            // MECHAGRAM_NETWORK_RESET_BEGIN
+            if context.mechagramCustomAddressSet != nil {
+                context.invalidateTransportSchemesForKnownDatacenterIds()
+            }
+            // MECHAGRAM_NETWORK_RESET_END
             var wrappedAdditionalSource: MTSignal?
             #if os(iOS)
             if #available(iOS 10.0, *), !supplementary, arguments.isICloudEnabled {
@@ -807,6 +818,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     private let queue: Queue
     public let datacenterId: Int
     public let context: MTContext
+    public var mechagramCanSelectServer = false
     private var networkHelper: NetworkHelper?
     let mtProto: MTProto
     let requestService: MTRequestMessageService

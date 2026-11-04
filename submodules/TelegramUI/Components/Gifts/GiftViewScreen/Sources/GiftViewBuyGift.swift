@@ -149,6 +149,10 @@ public func buyStarGiftImpl(
                 let _ = (context.engine.payments.mechagramSimulateGift(peerId: recipientPeerId, gift: .unique(uniqueGift), price: acceptedPrice ?? resellAmount) |> deliverOnMainQueue).start(next: { success in
                     beforeCompletion()
                     updateProgress(false)
+                    guard success else {
+                        controller.present(textAlertController(context: context, title: "Подарок", text: "Не удалось добавить подарок. Проверьте настройки подарков и получателя.", actions: [TextAlertAction(type: .defaultAction, title: "OK", action: {})]), in: .window(.root))
+                        return
+                    }
                     completion()
                     if let nav = nav {
                         if recipientPeerId != context.account.peerId {
@@ -159,6 +163,7 @@ public func buyStarGiftImpl(
                     }
                 })
             }
+            updateProgress(true)
             createGift()
             return
         }

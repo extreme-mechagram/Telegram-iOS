@@ -483,6 +483,9 @@ private final class GiftSetupScreenComponent: Component {
                 let price = gift.price + (self.includeUpgrade ? (gift.upgradeStars ?? 0) : 0)
                 let nav = controller.navigationController as? NavigationController
                 let createGift: () -> Void = {
+                    guard !self.inProgress else { return }
+                    self.inProgress = true
+                    self.state?.updated(transition: .immediate)
                     let _ = (context.engine.payments.mechagramSimulateGift(
                         peerId: peerId,
                         gift: .generic(gift),
@@ -491,6 +494,12 @@ private final class GiftSetupScreenComponent: Component {
                         entities: entities,
                         nameHidden: nameHidden
                     ) |> deliverOnMainQueue).start(next: { success in
+                        self.inProgress = false
+                        self.state?.updated(transition: .immediate)
+                        guard success else {
+                            controller.present(textAlertController(context: context, title: "Подарок", text: "Не удалось добавить подарок. Проверьте настройки подарков и получателя.", actions: [TextAlertAction(type: .defaultAction, title: "OK", action: {})]), in: .window(.root))
+                            return
+                        }
                         if let nav = nav {
                             var controllers = nav.viewControllers.filter { !($0 is GiftSetupScreen) && !($0 is GiftOptionsScreenProtocol) }
                             if peerId != context.account.peerId {

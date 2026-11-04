@@ -1907,7 +1907,7 @@ private final class GiftViewSheetContent: CombinedComponent {
         }
         
         func commitBuy(acceptedPrice: CurrencyAmount? = nil, skipConfirmation: Bool = false) {
-            if self.subject.mechagramIsLocal && (!UserDefaults.standard.bool(forKey: "mechagram.visualBalances") || !UserDefaults.standard.bool(forKey: "mechagram.visualGifts")) { return }
+            if self.subject.mechagramIsLocal && !(UserDefaults.standard.object(forKey: "mechagram.visualGifts") as? Bool ?? true) { return }
             guard case let .unique(uniqueGift) = self.subject.arguments?.gift, let controller = self.getController() as? GiftViewScreen else {
                 return
             }
