@@ -5,14 +5,14 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 checks = {
-    "submodules/TelegramCore/Sources/Network/Network.swift": "5410e714b2501d8233d4c55e091b81f263f4c384",
-    "submodules/MtProtoKit/Sources/MTContext.m": "6f26b62be7e8b18ac294783c68c9046a5665f806",
-    "submodules/MtProtoKit/Sources/MTDatacenterAuthMessageService.m": "882d6c6118f6876febbcc0356bcef825fe384d4a",
+    "submodules/TelegramCore/Sources/Network/Network.swift": "7a8db1d8722fe803f8166be1643ecd48afd5f3d7",
+    "submodules/MtProtoKit/Sources/MTContext.m": "91d362c64f8a027c24cf38e7413621fda5d030e9",
+    "submodules/MtProtoKit/Sources/MTDatacenterAuthMessageService.m": "7684c21b790c9eee1799528bc94782a5877aad2d",
 }
 for name, expected in checks.items():
     text = (root / name).read_text()
     if name.endswith("Network.swift"):
-        text = re.sub(r"            // MECHAGRAM_NETWORK_(BINDING|RESET)_BEGIN\n.*?            // MECHAGRAM_NETWORK_\1_END\n", "", text, flags=re.S)
+        text = re.sub(r"            // MECHAGRAM_NETWORK_(BINDING|RESET|ENGINE)_BEGIN\n.*?            // MECHAGRAM_NETWORK_\1_END\n", "", text, flags=re.S)
         text = text.replace("    public var mechagramCanSelectServer = false\n", "")
     elif name.endswith("MTContext.m"):
         branch = "    if (self.mechagramCustomAddressSet != nil && datacenterId >= 1 && datacenterId <= 5) {\n        return self.mechagramCustomAddressSet;\n    }\n"

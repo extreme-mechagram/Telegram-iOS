@@ -67,3 +67,15 @@ Custom server selection is captured per AccountRecordId before initializing MTPr
 A read-only req_pq_multi probe of 177.3.213.27 succeeded on TCP 443 and 2398; the server fingerprint 18c3579ed10fe05d matches the bundled custom public key. This verifies transport and key agreement, not full account login.
 
 CI regression tests execute the production transaction storage with a bounded timeout, synchronous observer reentry and 32 concurrent writes, plus custom port/key parsing and account binding isolation. Full device validation remains required. Stop following CI when IPA compilation starts, per the user's existing preference.
+
+## Telegram 13.1.2 and Visuals (2026-11-04)
+
+Merged official TelegramMessenger/Telegram-iOS master 279f89e4d4f63f17227bf877dc3d8990f22ecd58 (13.1.2) into the mod, retaining gift persistence, the transaction deadlock repair, per-account custom MTProto configuration and standalone storage for Esign. Build tooling follows upstream Xcode 27.1 / Bazel 9.2.0 on the documented xcode-27 arm64 runner. The new upstream minimum is iOS 15. Native wallet modules and settings are included; the upstream WalletConfiguration availability gate is retained.
+
+Native wallet gift menus are kept intact; local profile-copy actions use a separate local menu. Unique-gift messages adopt the new text/entities/nameHidden fields. Local purchases retain the shared skip-confirmation preference and do not require a real payment form. Custom servers continue to use the MTProtoKit engine because their explicit custom key/address context is not part of the new Rust network engine. Official networks retain the upstream engine selection.
+
+Mod settings now open Visuals: UIKit's color palette applies accents to native Telegram appearance settings, with light, dark and tinted-dark selections. Native appearance opens the wallpaper editor. The Display.Font factory supports rounded, serif and monospace application fonts with a restart for existing views.
+
+Per-peer local profile settings include +888 phone formatting, a collectible-style username, a verification badge, nickname font, avatar ring/beads/gem/sparkles with circle/rounded/square/hexagonal outlines, and profile-header color/image. Only profile rendering receives these metadata overlays; account authentication, stored peers, contact data and wallet ownership remain real. Image import uses bounded thumbnail decoding and private app storage. Existing profile nodes refresh through a style-change notification; profile reset and disable restore native rendering.
+
+Validation: production visual-model tests cover phone/username/color validation, per-peer isolation, persistence, disable/reset and corrupted preferences. Gift policy, deadlock and server-isolation tests remain in CI. Network fallback verification now compares against the new official source blobs after stripping explicit custom branches. Windows checks cover syntax (with two known unsupported constructs already present upstream), merge-marker absence and network fallback hashes; device UI verification is pending.

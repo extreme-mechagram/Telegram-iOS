@@ -81,6 +81,7 @@ private final class ExteraPortSettingsArguments {
     let update: (Int32, Bool) -> Void
     var editBalance: ((Bool) -> Void)?
     var hideSettings: (() -> Void)?
+    var openVisuals: (() -> Void)?
 
     init(update: @escaping (Int32, Bool) -> Void) {
         self.update = update
@@ -92,6 +93,7 @@ private enum ExteraPortSettingsEntry: ItemListNodeEntry {
     case footer(String)
     case balance(Int32, String, Bool)
     case hide(String)
+    case visuals(String)
 
     var section: ItemListSectionId { return 0 }
 
@@ -101,6 +103,7 @@ private enum ExteraPortSettingsEntry: ItemListNodeEntry {
         case let .balance(index, _, _): return 20 + index
         case .footer: return 100
         case .hide: return 90
+        case .visuals: return 80
         }
     }
 
@@ -123,6 +126,8 @@ private enum ExteraPortSettingsEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .hide(title):
             return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: title, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: { arguments.hideSettings?() })
+        case let .visuals(title):
+            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: title, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: { arguments.openVisuals?() })
         }
     }
 }
@@ -154,6 +159,9 @@ public func exteraPortSettingsController(context: AccountContext) -> ViewControl
         mechagramHideSettingsSessionOnly = true
         UserDefaults.standard.removeObject(forKey: "mechagram.hideSettings.v1")
         let _ = resultController?.navigationController?.popViewController(animated: true)
+    }
+    arguments.openVisuals = {
+        (resultController?.navigationController as? NavigationController)?.pushViewController(mechagramVisualController(context: context))
     }
 
     arguments.editBalance = { isTon in
@@ -204,6 +212,7 @@ public func exteraPortSettingsController(context: AccountContext) -> ViewControl
         }
         entries.append(.balance(0, "Stars: " + (UserDefaults.standard.string(forKey: "mechagram.visualStars") ?? "100 000"), false))
         entries.append(.balance(1, "TON: " + (UserDefaults.standard.string(forKey: "mechagram.visualTON") ?? "1 000"), true))
+        entries.append(.visuals(isRussian ? "Визуал" : "Visuals"))
         entries.append(.hide(isRussian ? "Скрыть пункт настроек мода" : "Hide mod settings entry"))
         entries.append(.footer(footer + (isRussian ? " Чтобы вернуть скрытый пункт, удерживайте строку «Оформление» в настройках Telegram. Функции мода продолжают работать. Подарки и действия с ними — копии Mechagram; настоящие покупки используют настоящий баланс." : " To restore the hidden entry, hold Appearance in Telegram settings. Mod features continue working. Gifts and their actions are Mechagram copies; real purchases use the real balance.")))
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))

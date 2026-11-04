@@ -53,7 +53,7 @@ public extension TelegramEngine {
         public func mechagramTransferLocalGift(giftId: Int64, recipientId: EnginePeer.Id) -> Signal<Bool, NoError> {
             return self.account.postbox.transaction { transaction -> Bool in
                 guard let gift = mechagramUpdateLocalGift(accountId: self.account.peerId, giftId: giftId, recipientId: recipientId) else { return false }
-                let action = TelegramMediaAction(action: .starGiftUnique(gift: .unique(gift), isUpgrade: false, isTransferred: true, savedToProfile: true, canExportDate: nil, transferStars: nil, isRefunded: false, isPrepaidUpgrade: false, peerId: nil, senderId: nil, savedId: nil, resaleAmount: nil, canTransferDate: nil, canResaleDate: nil, dropOriginalDetailsStars: nil, assigned: false, fromOffer: false, canCraftAt: nil, isCrafted: false))
+                let action = TelegramMediaAction(action: .starGiftUnique(gift: .unique(gift), isUpgrade: false, isTransferred: true, savedToProfile: true, canExportDate: nil, transferStars: nil, isRefunded: false, isPrepaidUpgrade: false, peerId: nil, senderId: nil, savedId: nil, resaleAmount: nil, canTransferDate: nil, canResaleDate: nil, dropOriginalDetailsStars: nil, assigned: false, fromOffer: false, canCraftAt: nil, isCrafted: false, text: nil, entities: nil, nameHidden: false))
                 let message = StoreMessage(id: .Partial(recipientId, Namespaces.Message.Local), customStableId: nil, globallyUniqueId: Int64.random(in: 1 ... Int64.max), groupingKey: nil, threadId: nil, timestamp: Int32(Date().timeIntervalSince1970), flags: [], tags: [], globalTags: [], localTags: [], forwardInfo: nil, authorId: self.account.peerId, text: "mechagram:local-gift:v2", attributes: [], media: [action])
                 let _ = transaction.addMessages([message], location: .UpperHistoryBlock)
                 return true
@@ -97,7 +97,7 @@ public extension TelegramEngine {
                 case let .generic(genericGift):
                     action = TelegramMediaAction(action: .starGift(gift: gift, convertStars: genericGift.convertStars, text: text, entities: entities, nameHidden: nameHidden, savedToProfile: true, converted: false, upgraded: false, canUpgrade: genericGift.upgradeStars != nil, upgradeStars: genericGift.upgradeStars, isRefunded: false, isPrepaidUpgrade: false, upgradeMessageId: nil, peerId: peerId, senderId: isSelf ? nil : self.account.peerId, savedId: nil, prepaidUpgradeHash: nil, giftMessageId: nil, upgradeSeparate: false, isAuctionAcquired: false, toPeerId: peerId, number: nil))
                 case .unique:
-                    action = TelegramMediaAction(action: .starGiftUnique(gift: gift, isUpgrade: false, isTransferred: false, savedToProfile: true, canExportDate: nil, transferStars: nil, isRefunded: false, isPrepaidUpgrade: false, peerId: peerId, senderId: isSelf ? nil : self.account.peerId, savedId: nil, resaleAmount: price, canTransferDate: nil, canResaleDate: nil, dropOriginalDetailsStars: nil, assigned: false, fromOffer: false, canCraftAt: nil, isCrafted: false))
+                    action = TelegramMediaAction(action: .starGiftUnique(gift: gift, isUpgrade: false, isTransferred: false, savedToProfile: true, canExportDate: nil, transferStars: nil, isRefunded: false, isPrepaidUpgrade: false, peerId: peerId, senderId: isSelf ? nil : self.account.peerId, savedId: nil, resaleAmount: price, canTransferDate: nil, canResaleDate: nil, dropOriginalDetailsStars: nil, assigned: false, fromOffer: false, canCraftAt: nil, isCrafted: false, text: text, entities: entities, nameHidden: nameHidden))
                 }
                 var profileGifts = mechagramReadProfileGifts(accountId: self.account.peerId, peerId: peerId)
                 if case let .unique(value) = gift {
@@ -158,6 +158,57 @@ public extension TelegramEngine {
         
         public func getBankCardInfo(cardNumber: String) -> Signal<BankCardInfo?, NoError> {
             return _internal_getBankCardInfo(account: self.account, cardNumber: cardNumber)
+        }
+
+        public func currencyRates() -> Signal<[CurrencyRate]?, NoError> {
+            return _internal_currencyRates(account: self.account)
+        }
+
+        public func getOnrampProviders(cryptoCurrency: String? = nil) -> Signal<[OnrampProviderInfo], OnrampError> {
+            return _internal_getOnrampProviders(account: self.account, cryptoCurrency: cryptoCurrency)
+        }
+
+        public func getOnrampBaseCurrencies(provider: String, cryptoCurrency: String) -> Signal<[String], OnrampError> {
+            return _internal_getOnrampBaseCurrencies(account: self.account, provider: provider, cryptoCurrency: cryptoCurrency)
+        }
+
+        public func getOnrampAvailability(provider: String, cryptoCurrency: String, baseCurrency: String? = nil) -> Signal<OnrampAvailability, OnrampError> {
+            return _internal_getOnrampAvailability(account: self.account, provider: provider, cryptoCurrency: cryptoCurrency, baseCurrency: baseCurrency)
+        }
+
+        public func getOnrampLimits(provider: String, cryptoCurrency: String, baseCurrency: String, paymentMethod: String? = nil) -> Signal<OnrampLimits, OnrampError> {
+            return _internal_getOnrampLimits(account: self.account, provider: provider, cryptoCurrency: cryptoCurrency, baseCurrency: baseCurrency, paymentMethod: paymentMethod)
+        }
+
+        public func getOnrampQuote(provider: String, cryptoCurrency: String, baseCurrency: String, amount: OnrampQuoteAmount, paymentMethod: String? = nil) -> Signal<OnrampQuote, OnrampError> {
+            return _internal_getOnrampQuote(account: self.account, provider: provider, cryptoCurrency: cryptoCurrency, baseCurrency: baseCurrency, amount: amount, paymentMethod: paymentMethod)
+        }
+
+        public func createOnrampSession(
+            provider: String,
+            cryptoCurrency: String,
+            address: String,
+            paymentMethod: String? = nil,
+            baseCurrency: String? = nil,
+            baseAmount: String? = nil,
+            memo: String? = nil,
+            theme: String? = nil,
+            successReturnUrl: String? = nil,
+            failReturnUrl: String? = nil
+        ) -> Signal<OnrampSession, OnrampError> {
+            return _internal_createOnrampSession(
+                account: self.account,
+                provider: provider,
+                cryptoCurrency: cryptoCurrency,
+                address: address,
+                paymentMethod: paymentMethod,
+                baseCurrency: baseCurrency,
+                baseAmount: baseAmount,
+                memo: memo,
+                theme: theme,
+                successReturnUrl: successReturnUrl,
+                failReturnUrl: failReturnUrl
+            )
         }
         
         public func fetchBotPaymentInvoice(source: BotPaymentInvoiceSource) -> Signal<TelegramMediaInvoice, BotPaymentFormRequestError> {
@@ -267,6 +318,10 @@ public extension TelegramEngine {
             return _internal_convertStarGift(account: self.account, reference: reference)
         }
         
+        public func deleteStarGift(reference: StarGiftReference) -> Signal<Never, NoError> {
+            return _internal_deleteStarGift(account: self.account, reference: reference)
+        }
+        
         public func updateStarGiftAddedToProfile(reference: StarGiftReference, added: Bool) -> Signal<Never, NoError> {
             return _internal_updateStarGiftAddedToProfile(account: self.account, reference: reference, added: added)
         }
@@ -279,8 +334,20 @@ public extension TelegramEngine {
             return _internal_transferStarGift(account: self.account, prepaid: prepaid, reference: reference, peerId: peerId)
         }
         
-        public func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?) -> Signal<Never, BuyStarGiftError> {
-            return _internal_buyStarGift(account: self.account, slug: slug, peerId: peerId, price: price)
+        public func withdrawStarGift(reference: StarGiftReference, keepOnProfile: Bool, password: String?) -> Signal<Never, WithdrawStarGiftError> {
+            return _internal_withdrawStarGift(account: self.account, reference: reference, keepOnProfile: keepOnProfile, password: password)
+        }
+
+        public func depositStarGift(peerId: EnginePeer.Id, slug: String, hideSender: Bool) -> Signal<StarGiftDepositPayload, DepositStarGiftError> {
+            return _internal_depositStarGift(account: self.account, peerId: peerId, slug: slug, hideSender: hideSender)
+        }
+
+        public func displayStarGift(peerId: EnginePeer.Id?, slug: String) -> Signal<Never, DisplayStarGiftError> {
+            return _internal_displayStarGift(account: self.account, peerId: peerId, slug: slug)
+        }
+
+        public func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?, hideName: Bool = true, text: String? = nil, entities: [MessageTextEntity]? = nil) -> Signal<Never, BuyStarGiftError> {
+            return _internal_buyStarGift(account: self.account, slug: slug, peerId: peerId, price: price, hideName: hideName, text: text, entities: entities)
         }
         
         public func upgradeStarGift(formId: Int64?, reference: StarGiftReference, keepOriginalInfo: Bool) -> Signal<ProfileGiftsContext.State.StarGift, UpgradeStarGiftError> {
@@ -299,6 +366,10 @@ public extension TelegramEngine {
             return _internal_getUniqueStarGift(account: self.account, slug: slug)
         }
         
+        public func cachedUniqueStarGift(slug: String) -> Signal<StarGift.UniqueGift?, NoError> {
+            return _internal_cachedUniqueStarGift(account: self.account, slug: slug)
+        }
+        
         public func getUniqueStarGiftValueInfo(slug: String) -> Signal<StarGift.UniqueGift.ValueInfo?, NoError> {
             return _internal_getUniqueStarGiftValueInfo(account: self.account, slug: slug)
         }
@@ -307,7 +378,7 @@ public extension TelegramEngine {
             return _internal_checkStarGiftWithdrawalAvailability(account: self.account, reference: reference)
         }
         
-        public func requestStarGiftWithdrawalUrl(reference: StarGiftReference, password: String) -> Signal<String, RequestStarGiftWithdrawalError> {
+        public func requestStarGiftWithdrawalUrl(reference: StarGiftReference, password: String?) -> Signal<String, RequestStarGiftWithdrawalError> {
             return _internal_requestStarGiftWithdrawalUrl(account: account, reference: reference, password: password)
         }
         

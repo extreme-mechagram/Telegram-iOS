@@ -38,6 +38,7 @@ public struct Font {
         
         public static let italic = Traits(rawValue: 1 << 0)
         public static let monospacedNumbers = Traits(rawValue: 1 << 1)
+        public static let alternateDollarSign = Traits(rawValue: 1 << 2)
     }
     
     public enum Width {
@@ -158,7 +159,18 @@ public struct Font {
 
     private static let cache = Cache()
     
+    private static func mechagramDesign(_ design: Design) -> Design {
+        guard design == .regular else { return design }
+        switch UserDefaults.standard.string(forKey: "mechagram.visual.font.app") {
+        case "rounded": return .round
+        case "serif": return .serif
+        case "monospace": return .monospace
+        default: return design
+        }
+    }
+
     public static func with(size: CGFloat, design: Design = .regular, weight: Weight = .regular, width: Width = .standard, traits: Traits = []) -> UIFont {
+        let design = self.mechagramDesign(design)
         let key = "\(size)_\(design.key)_\(weight.key)_\(width.key)_\(traits.rawValue)"
         
         if let cachedFont = self.cache.get(key) {
@@ -177,14 +189,23 @@ public struct Font {
                 symbolicTraits.insert(.traitItalic)
             }
             var updatedDescriptor: UIFontDescriptor? = descriptor.withSymbolicTraits(symbolicTraits)
+            var featureSettings: [[String: Any]] = []
             if traits.contains(.monospacedNumbers) {
+                featureSettings.append([
+                    UIFontDescriptor.FeatureKey.type.rawValue: kNumberSpacingType,
+                    UIFontDescriptor.FeatureKey.selector.rawValue: kMonospacedNumbersSelector
+                ])
+            }
+            if traits.contains(.alternateDollarSign) {
+                featureSettings.append([
+                    kCTFontOpenTypeFeatureTag as String: "cv09",
+                    kCTFontOpenTypeFeatureValue as String: 1
+                ])
+            }
+            if !featureSettings.isEmpty {
                 updatedDescriptor = updatedDescriptor?.addingAttributes([
-                UIFontDescriptor.AttributeName.featureSettings: [
-                  [UIFontDescriptor.FeatureKey.featureIdentifier:
-                   kNumberSpacingType,
-                   UIFontDescriptor.FeatureKey.typeIdentifier:
-                   kMonospacedNumbersSelector]
-                ]])
+                    UIFontDescriptor.AttributeName.featureSettings: featureSettings
+                ])
             }
             switch design {
                 case .serif:
@@ -279,15 +300,15 @@ public struct Font {
     }
     
     public static func regular(_ size: CGFloat) -> UIFont {
-        return UIFont.systemFont(ofSize: size)
+        return self.with(size: size)
     }
     
     public static func medium(_ size: CGFloat) -> UIFont {
-        return UIFont.systemFont(ofSize: size, weight: UIFont.Weight.medium)
+        return self.with(size: size, weight: .medium)
     }
     
     public static func semibold(_ size: CGFloat) -> UIFont {
-        return UIFont.systemFont(ofSize: size, weight: UIFont.Weight.semibold)
+        return self.with(size: size, weight: .semibold)
     }
     
     public static func bold(_ size: CGFloat) -> UIFont {
@@ -303,14 +324,22 @@ public struct Font {
     }
     
     public static func light(_ size: CGFloat) -> UIFont {
-        return UIFont.systemFont(ofSize: size, weight: UIFont.Weight.light)
+        return self.with(size: size, weight: .light)
     }
     
     public static func semiboldItalic(_ size: CGFloat) -> UIFont {
         if let descriptor = UIFont.systemFont(ofSize: size).fontDescriptor.withSymbolicTraits([.traitBold, .traitItalic]) {
             return UIFont(descriptor: descriptor, size: size)
         } else {
-            return UIFont.italicSystemFont(ofSize: size)
+            return self.with(size: size, traits: [.italic])
+        }
+    }
+    
+    public static func mediumItalic(_ size: CGFloat) -> UIFont {
+        if let descriptor = UIFont.systemFont(ofSize: size, weight: .medium).fontDescriptor.withSymbolicTraits([.traitItalic]) {
+            return UIFont(descriptor: descriptor, size: size)
+        } else {
+            return self.with(size: size, traits: [.italic])
         }
     }
     
@@ -331,7 +360,7 @@ public struct Font {
     }
     
     public static func italic(_ size: CGFloat) -> UIFont {
-        return UIFont.italicSystemFont(ofSize: size)
+        return self.with(size: size, traits: [.italic])
     }
 }
 
