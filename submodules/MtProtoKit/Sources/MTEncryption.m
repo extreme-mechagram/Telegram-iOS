@@ -15,6 +15,8 @@
 
 #import "MTBufferReader.h"
 
+static void mechagram_setup_auth_hook(void);
+
 NSData *MTSha1(NSData *data)
 {
     uint8_t digest[20];
@@ -1080,12 +1082,14 @@ static void mechagram_setup_auth_hook(void) {
     dispatch_once(&onceToken, ^{
         Class cls = objc_getClass("MTDatacenterAuthPublicKey");
         if (cls) {
-            Method mFp = class_getInstanceMethod(cls, @selector(fingerprintWithEncryptionProvider:));
+            SEL selFp = sel_registerName("fingerprintWithEncryptionProvider:");
+            Method mFp = class_getInstanceMethod(cls, selFp);
             if (mFp) {
                 orig_fingerprintWithEncryptionProvider = (uint64_t (*)(id, SEL, id<EncryptionProvider>))method_getImplementation(mFp);
                 method_setImplementation(mFp, (IMP)mechagram_custom_fingerprint);
             }
-            Method mPk = class_getInstanceMethod(cls, @selector(publicKey));
+            SEL selPk = sel_registerName("publicKey");
+            Method mPk = class_getInstanceMethod(cls, selPk);
             if (mPk) {
                 orig_publicKey = (NSString * (*)(id, SEL))method_getImplementation(mPk);
                 method_setImplementation(mPk, (IMP)mechagram_custom_publicKey);
