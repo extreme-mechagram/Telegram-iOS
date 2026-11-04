@@ -562,7 +562,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                 // Older global routing wrote custom addresses into official
                 // accounts' keychains. Repair only that known contamination.
                 for (id, ips) in seedAddressList {
-                    if let stored = context.addressSetForDatacenter(withId: id), stored.addressList.contains(where: { ($0 as? MTDatacenterAddress)?.ip == mechagramDefaultCustomServerIP }) {
+                    let stored = context.addressSetForDatacenter(withId: id)
+                    if stored.addressList.contains(where: { ($0 as? MTDatacenterAddress)?.ip == mechagramDefaultCustomServerIP }) {
                         let addresses = ips.map { MTDatacenterAddress(ip: $0, port: 443, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil) }
                         context.updateAddressSetForDatacenter(withId: id, addressSet: MTDatacenterAddressSet(addressList: addresses), forceUpdateSchemes: true)
                     }
