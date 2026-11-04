@@ -80,6 +80,11 @@
 @property (nonatomic, readonly) bool useTempAuthKeys;
 @property (nonatomic) int32_t tempKeyExpiration;
 
+// Per-context custom transport and authentication; never global RSA hooks.
+@property (atomic, copy) NSString * _Nullable mechagramCustomPublicKey;
+@property (atomic, strong) MTDatacenterAddressSet * _Nullable mechagramCustomAddressSet;
+@property (atomic, copy) NSString * _Nullable mechagramServerAccountKey;
+
 @property (nonatomic, copy) id<MTTcpConnectionInterface> _Nonnull (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue);
 
 + (int32_t)fixedTimeDifference;
