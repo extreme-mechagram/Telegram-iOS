@@ -1,10 +1,12 @@
 """Adapt the repository's self-signed verification profiles, not device signing."""
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import plistlib
 import shutil
 import subprocess
 import tempfile
+import uuid
 
 
 def select_openssl():
@@ -43,6 +45,19 @@ def replace_bundle(value, bundle):
     return value
 
 
+def prepare_profile(original, bundle, now=None):
+    data = replace_bundle(original, bundle)
+    instant = now or datetime.now(timezone.utc)
+    # Apple plist dates are UTC; Python 3.11's plist writer expects naive dates.
+    if instant.tzinfo is not None:
+        instant = instant.astimezone(timezone.utc).replace(tzinfo=None)
+    data['CreationDate'] = instant
+    data['ExpirationDate'] = instant + timedelta(days=365)
+    data['TimeToLive'] = 365
+    data['UUID'] = str(uuid.uuid4()).upper()
+    return data
+
+
 def main():
     root = Path(__file__).resolve().parent.parent
     bundle = json.loads((root / 'build-system/appstore-configuration.json').read_text())['bundle_id']
@@ -54,7 +69,7 @@ def main():
         run_openssl(executable, 'pkcs12', *legacy_options, '-in', str(signing / 'certs/SelfSigned.p12'), '-passin', 'pass:', '-nodes', '-out', str(pem))
         for profile in (signing / 'profiles').glob('*.mobileprovision'):
             original = run_openssl(executable, 'smime', '-inform', 'der', '-verify', '-noverify', '-in', str(profile))
-            data = replace_bundle(plistlib.loads(original), bundle)
+            data = prepare_profile(plistlib.loads(original), bundle)
             source = Path(directory) / 'profile.plist'
             source.write_bytes(plistlib.dumps(data))
             run_openssl(executable, 'smime', '-sign', '-nodetach', '-in', str(source), '-outform', 'DER', '-out', str(profile), '-signer', str(pem), '-inkey', str(pem))

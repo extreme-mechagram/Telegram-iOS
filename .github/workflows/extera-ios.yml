@@ -48,6 +48,8 @@ jobs:
         run: python3 port/test-mechagram-visuals.py
       - name: Test Mechagram gift sync ledger
         run: python3 port/sync/test_server.py
+      - name: Test verification profile renewal
+        run: python3 port/test-mechagram-profiles.py
       - name: Restore compilation cache
         id: cache
         uses: actions/cache/restore@v4
