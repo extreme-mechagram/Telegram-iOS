@@ -1425,6 +1425,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             self.currentPendingStarRating = nil
         }
 
+        if let peerId = peer?.id, let rating = mechagramVisualRating(peerId: peerId) {
+            self.currentStarRating = rating
+            self.currentPendingStarRating = nil
+        }
+
         #if DEBUG && false
         if "".isEmpty {
             let starRating: TelegramStarRating
@@ -1956,7 +1961,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let _ = apparentAvatarListFrame
         transition.updateFrameAdditive(node: self.avatarListNode, frame: CGRect(origin: apparentAvatarFrame.center, size: CGSize()))
         let visualAvatar = self.avatarListNode.avatarContainerNode.avatarNode
-        let visualContainer = self.avatarListNode.avatarContainerNode.view
+        let visualContainer = self.avatarListNode.avatarContainerNode.containerNode.view
         if self.mechagramFrame.superview !== visualContainer { visualContainer.addSubview(self.mechagramFrame) }
         self.mechagramFrame.frame = visualAvatar.frame.insetBy(dx: -6, dy: -6)
         self.mechagramFrame.update(style: visualStyle)

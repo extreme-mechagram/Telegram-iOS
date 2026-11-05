@@ -9,14 +9,15 @@ func mechagramProfileColor(_ hex: String) -> UIColor? {
 }
 
 func mechagramNicknameFont(_ style: MechagramVisualProfile, size: CGFloat) -> UIFont {
-    let design: Font.Design
+    let base = UIFont.systemFont(ofSize: size, weight: .medium)
+    guard style.enabled else { return base }
     switch style.nicknameFont {
-    case "rounded": design = .round
-    case "serif": design = .serif
-    case "monospace": design = .monospace
-    default: design = .regular
+    case "rounded":
+        return base.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? base
+    case "serif": return UIFont(name: "Georgia-Bold", size: size) ?? base
+    case "monospace": return UIFont.monospacedSystemFont(ofSize: size, weight: .medium)
+    default: return base
     }
-    return Font.with(size: size, design: style.enabled ? design : .regular, weight: .medium)
 }
 
 final class MechagramProfileBackdropView: UIView {

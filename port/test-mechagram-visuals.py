@@ -18,6 +18,21 @@ assert(MechagramVisualProfile.normalizedUsername("bad/name") == nil)
 assert(MechagramVisualProfile.normalizedUsername(String(repeating: "a", count: 33)) == nil)
 assert(MechagramVisualProfile.normalizedColor("#ff453a") == "FF453A")
 assert(MechagramVisualProfile.normalizedColor("GG0000") == nil)
+assert(MechagramVisualProfile.normalizedGram("1,234567891") == "1.234567891")
+assert(MechagramVisualProfile.gramNanos("1.234567891") == 1_234_567_891)
+assert(MechagramVisualProfile.gramNanos("0.000000001") == 1)
+assert(MechagramVisualProfile.gramNanos("1000000000") == 1_000_000_000_000_000_000)
+assert(MechagramVisualProfile.gramNanos("0") == 0)
+assert(MechagramVisualProfile.normalizedGram("1000000001") == nil)
+assert(MechagramVisualProfile.normalizedGram("1.0000000001") == nil)
+assert(MechagramVisualProfile.normalizedGram("-1") == nil)
+assert(MechagramVisualProfile.normalizedGram("nan") == nil)
+assert(MechagramVisualProfile.normalizedGram("1e9") == nil)
+assert(MechagramVisualProfile.normalizedRatingNumber("1000", maximum: 1000) == "1000")
+assert(MechagramVisualProfile.normalizedRatingNumber("1001", maximum: 1000) == nil)
+assert(MechagramVisualProfile.normalizedRatingNumber("-1", maximum: 1000) == nil)
+assert(MechagramVisualProfile.normalizedRatingNumber("١", maximum: 1000) == nil)
+assert(MechagramVisualProfile.normalizedRatingNumber("999999999999999999999", maximum: 1000) == nil)
 let name = "mechagram-visual-tests-" + UUID().uuidString
 let defaults = UserDefaults(suiteName: name)!
 var profile = MechagramVisualProfile()
@@ -42,7 +57,7 @@ assert(MechagramVisualProfile.load(peerId: 100, defaults: defaults) == Mechagram
 defaults.set(Data("broken".utf8), forKey: "mechagram.visual.profile.v1.100")
 assert(MechagramVisualProfile.load(peerId: 100, defaults: defaults) == MechagramVisualProfile())
 defaults.removePersistentDomain(forName: name)
-print("Mechagram: 17 visual profile validation, isolation, persistence and reset assertions passed")
+print("Mechagram: 32 visual profile validation, isolation, persistence and reset assertions passed")
 '''
 with tempfile.TemporaryDirectory() as directory:
     path = Path(directory) / "main.swift"

@@ -1584,6 +1584,7 @@ private final class WalletScreenComponent: Component {
         }
 
         private var displayBalance: Int64? {
+            if let component = self.component, let visual = mechagramVisualGramBalance(peerId: component.context.account.peerId) { return visual }
             guard let balance = self.walletState?.balance.currentValue else {
                 return nil
             }

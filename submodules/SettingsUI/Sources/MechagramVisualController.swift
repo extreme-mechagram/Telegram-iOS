@@ -44,6 +44,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
     override func loadDisplayNode() {
         self.displayNode = ASDisplayNode()
         self.displayNode.backgroundColor = self.context.sharedContext.currentPresentationData.with { $0 }.theme.list.blocksBackgroundColor
+        self.table.contentInsetAdjustmentBehavior = .never
         self.table.backgroundColor = .clear
         self.table.dataSource = self
         self.table.delegate = self
@@ -54,8 +55,8 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
     override func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         let navigationBarHeight = self.navigationLayout(layout: layout).navigationFrame.maxY
-        self.table.frame = CGRect(origin: .zero, size: layout.size)
-        self.table.contentInset = UIEdgeInsets(top: navigationBarHeight, left: 0, bottom: layout.intrinsicInsets.bottom, right: 0)
+        self.table.frame = CGRect(x: layout.safeInsets.left, y: navigationBarHeight, width: max(0, layout.size.width - layout.safeInsets.left - layout.safeInsets.right), height: max(0, layout.size.height - navigationBarHeight))
+        self.table.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: layout.intrinsicInsets.bottom, right: 0)
         self.table.scrollIndicatorInsets = self.table.contentInset
     }
 
@@ -64,13 +65,14 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         self.table.reloadData()
     }
 
-    func numberOfSections(in tableView: UITableView) -> Int { return 4 }
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { return [4, 4, 5, 2][section] }
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { return ["Приложение", "Мой профиль", "Аватар и фон", "Ник и украшения"][section] }
+    func numberOfSections(in tableView: UITableView) -> Int { return 5 }
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { return [4, 4, 5, 2, 4][section] }
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { return ["Приложение", "Мой профиль", "Аватар и фон", "Ник и украшения", "Рейтинг и Gram"][section] }
     func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         if section == 0 { return "Цвет применяется средствами Telegram. После смены общего шрифта перезапустите приложение, чтобы обновить все экраны." }
         if section == 1 { return "Номер +888, NFT-юзернейм и галочка меняют оформление профиля на этом устройстве. Они не меняют номер входа, владение Fragment или статус верификации Telegram." }
         if section == 2 { return "Фон можно выбрать из Файлов. Удерживайте строку с цветом, чтобы сбросить его. Параметры профиля сохраняются отдельно для каждого аккаунта." }
+        if section == 4 { return "Рейтинг и баланс Gram меняются на этом устройстве. Для возврата реального значения нажмите «Убрать»." }
         return nil
     }
 
@@ -103,7 +105,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         cell.textLabel?.font = Font.regular(17)
         cell.detailTextLabel?.font = Font.regular(15)
         cell.accessoryType = .disclosureIndicator
-        let titles = [["Цвет приложения", "Светлая / тёмная тема", "Шрифт приложения", "Фон чатов и оформление"], ["Показывать оформление профиля", "Анонимный номер +888", "NFT-юзернейм", "Галочка в профиле"], ["Рамка аватара", "Форма рамки", "Цвет рамки", "Цвет фона профиля", "Изображение фона профиля"], ["Шрифт ника", "Декоративный значок"]]
+        let titles = [["Цвет приложения", "Светлая / тёмная тема", "Шрифт приложения", "Фон чатов и оформление"], ["Показывать оформление профиля", "Анонимный номер +888", "NFT-юзернейм", "Галочка в профиле"], ["Рамка аватара", "Форма рамки", "Цвет рамки", "Цвет фона профиля", "Изображение фона профиля"], ["Шрифт ника", "Декоративный значок"], ["Уровень рейтинга", "Баллы рейтинга", "Баллы следующего уровня", "Баланс Gram"]]
         cell.textLabel?.text = titles[indexPath.section][indexPath.row]
         if indexPath.section == 1 && (indexPath.row == 0 || indexPath.row == 3) {
             let control = UISwitch()
@@ -125,7 +127,13 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         case (2, 4): cell.detailTextLabel?.text = self.style.backgroundImage.isEmpty ? "Выбрать" : "Выбрано"
         case (3, 0): cell.detailTextLabel?.text = self.fontName(self.style.nicknameFont)
         case (3, 1): cell.detailTextLabel?.text = self.style.decoration
+        case (4, _): cell.detailTextLabel?.text = UserDefaults.standard.string(forKey: self.numericKey(indexPath.row)) ?? "Реальный"
         default: break
+        }
+        if indexPath.section == 3 && indexPath.row == 0 {
+            let base = UIFont.systemFont(ofSize: 17)
+            let design: UIFontDescriptor.SystemDesign = self.style.nicknameFont == "serif" ? .serif : (self.style.nicknameFont == "monospace" ? .monospaced : (self.style.nicknameFont == "rounded" ? .rounded : .default))
+            if let descriptor = base.fontDescriptor.withDesign(design) { cell.detailTextLabel?.font = UIFont(descriptor: descriptor, size: 17) }
         }
         return cell
     }
@@ -141,7 +149,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
     }
 
     private func choices(_ title: String, values: [String], select: @escaping (Int) -> Void) {
-        let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
+        let sheet = UIAlertController(title: title, message: nil, preferredStyle: .alert)
         for (index, value) in values.enumerated() { sheet.addAction(UIAlertAction(title: value, style: .default, handler: { _ in select(index) })) }
         sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         self.show(sheet)
@@ -162,6 +170,11 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
             apply(normalized)
         }))
         self.show(alert)
+    }
+
+    private func numericKey(_ row: Int) -> String {
+        if row == 3 { return "mechagram.visual.gram.\(self.peerValue)" }
+        return "mechagram.visual.rating.\(self.peerValue)." + ["level", "stars", "next"][row]
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -202,6 +215,18 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         }
         case (3, 0): self.choices("Шрифт ника", values: self.fontNames) { [weak self] index in guard let self else { return }; self.style.nicknameFont = self.fontValues[index]; self.save() }
         case (3, 1): self.edit("Украшение аватара", value: self.style.decoration, placeholder: "До 4 символов, например 🎀 или 💎", validate: { $0.count <= 4 ? $0 : nil }) { [weak self] value in self?.style.decoration = value; self?.save() }
+        case (4, _):
+            let row = indexPath.row
+            let key = self.numericKey(row)
+            let title = ["Уровень рейтинга", "Баллы рейтинга", "Баллы следующего уровня", "Баланс Gram"][row]
+            self.edit(title, value: UserDefaults.standard.string(forKey: key) ?? "", placeholder: row == 3 ? "От 0 до 1 000 000 000; до 9 знаков после запятой" : (row == 0 ? "От 0 до 1000" : "От 0 до 1 000 000 000 000 000"), validate: { value in
+                if row == 3 { return MechagramVisualProfile.normalizedGram(value) }
+                return MechagramVisualProfile.normalizedRatingNumber(value, maximum: row == 0 ? 1000 : 1_000_000_000_000_000)
+            }) { [weak self] value in
+                if value.isEmpty { UserDefaults.standard.removeObject(forKey: key) }
+                else { UserDefaults.standard.set(value, forKey: key) }
+                self?.save()
+            }
         default: break
         }
     }
@@ -263,7 +288,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
     @objc private func resetProfile() {
         let sheet = UIAlertController(title: "Сбросить оформление?", message: "Будут убраны локальный номер, юзернейм, галочка, рамка и фон этого аккаунта. Общий шрифт, цвет и тема Telegram останутся выбранными.", preferredStyle: .alert)
         sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        sheet.addAction(UIAlertAction(title: "Сбросить", style: .destructive, handler: { [weak self] _ in self?.style = MechagramVisualProfile(); self?.save() }))
+        sheet.addAction(UIAlertAction(title: "Сбросить", style: .destructive, handler: { [weak self] _ in guard let self else { return }; self.style = MechagramVisualProfile(); for row in 0..<4 { UserDefaults.standard.removeObject(forKey: self.numericKey(row)) }; self.save() }))
         self.show(sheet)
     }
 }

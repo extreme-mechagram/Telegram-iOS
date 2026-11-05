@@ -41,6 +41,23 @@ public struct MechagramVisualProfile: Codable, Equatable {
         return value
     }
 
+    public static func normalizedGram(_ text: String) -> String? {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
+        guard value.range(of: "^[0-9]{1,10}(\\.[0-9]{1,9})?$", options: .regularExpression) != nil,
+              let amount = Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")), amount <= Decimal(1_000_000_000) else { return nil }
+        return value
+    }
+
+    public static func gramNanos(_ text: String) -> Int64? {
+        guard let value = normalizedGram(text) else { return nil }
+        return NSDecimalNumber(string: value, locale: Locale(identifier: "en_US_POSIX")).multiplying(by: NSDecimalNumber(value: 1_000_000_000)).int64Value
+    }
+
+    public static func normalizedRatingNumber(_ text: String, maximum: Int64) -> String? {
+        guard !text.isEmpty, text.allSatisfy({ $0.isASCII && $0.isNumber }), let value = Int64(text), value <= maximum else { return nil }
+        return String(value)
+    }
+
     public static func normalizedColor(_ text: String) -> String? {
         let value = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "").uppercased()
         guard value.range(of: "^[0-9A-F]{6}$", options: .regularExpression) != nil else { return nil }
@@ -62,4 +79,21 @@ public func mechagramVisualProfilePeer(_ peer: EnginePeer) -> EnginePeer {
     }
     if style.verified { result = result.withUpdatedFlags(result.flags.union(.isVerified)) }
     return .user(result)
+}
+
+public func mechagramVisualGramBalance(peerId: PeerId) -> Int64? {
+    guard let value = UserDefaults.standard.string(forKey: "mechagram.visual.gram.\(peerId.toInt64())") else { return nil }
+    return MechagramVisualProfile.gramNanos(value)
+}
+
+public func mechagramVisualRating(peerId: PeerId) -> TelegramStarRating? {
+    let prefix = "mechagram.visual.rating.\(peerId.toInt64())."
+    let defaults = UserDefaults.standard
+    guard MechagramVisualProfile.load(peerId: peerId.toInt64()).enabled,
+          let raw = defaults.string(forKey: prefix + "level"),
+          let level = MechagramVisualProfile.normalizedRatingNumber(raw, maximum: 1000).flatMap({ Int32($0) }) else { return nil }
+    let stars = defaults.string(forKey: prefix + "stars").flatMap({ Int64($0) }) ?? 0
+    let next = defaults.string(forKey: prefix + "next").flatMap({ Int64($0) }) ?? 5000
+    guard (0...1_000_000_000_000_000).contains(stars), (0...1_000_000_000_000_000).contains(next) else { return nil }
+    return TelegramStarRating(level: level, currentLevelStars: 0, stars: stars, nextLevelStars: max(stars + 1, next))
 }
