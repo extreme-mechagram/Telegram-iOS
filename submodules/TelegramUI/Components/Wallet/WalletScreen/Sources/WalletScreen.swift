@@ -1583,6 +1583,10 @@ private final class WalletScreenComponent: Component {
             })
         }
 
+        func refreshMechagramVisualBalance() {
+            self.componentState?.updated(transition: .immediate)
+        }
+
         private var displayBalance: Int64? {
             if let component = self.component, let visual = mechagramVisualGramBalance(peerId: component.context.account.peerId) { return visual }
             guard let balance = self.walletState?.balance.currentValue else {
@@ -4125,6 +4129,7 @@ public final class WalletScreen: ViewControllerComponentContainer {
 
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        (self.node.hostView.componentView as? WalletScreenComponent.View)?.refreshMechagramVisualBalance()
         (self.node.hostView.componentView as? WalletScreenComponent.View)?.setTransferAnimationsVisible(true)
     }
 

@@ -35,6 +35,18 @@ assert(MechagramVisualProfile.normalizedRatingNumber("١", maximum: 1000) == nil
 assert(MechagramVisualProfile.normalizedRatingNumber("999999999999999999999", maximum: 1000) == nil)
 let name = "mechagram-visual-tests-" + UUID().uuidString
 let defaults = UserDefaults(suiteName: name)!
+assert(MechagramVisualProfile.gramBalance(peerId: 100, defaults: defaults) == nil)
+defaults.set(true, forKey: "mechagram.visualBalances")
+defaults.set("42.000000001", forKey: "mechagram.visualTON")
+assert(MechagramVisualProfile.gramBalance(peerId: 100, defaults: defaults) == 42_000_000_001)
+defaults.set("7.5", forKey: "mechagram.visual.gram.100")
+assert(MechagramVisualProfile.gramBalance(peerId: 100, defaults: defaults) == 7_500_000_000)
+assert(MechagramVisualProfile.gramBalance(peerId: 200, defaults: defaults) == 42_000_000_001)
+defaults.set(false, forKey: "mechagram.visualBalances")
+assert(MechagramVisualProfile.gramBalance(peerId: 200, defaults: defaults) == nil)
+assert(MechagramVisualProfile.gramBalance(peerId: 100, defaults: defaults) == 7_500_000_000)
+defaults.removeObject(forKey: "mechagram.visual.gram.100")
+assert(MechagramVisualProfile.gramBalance(peerId: 100, defaults: defaults) == nil)
 var profile = MechagramVisualProfile()
 profile.anonymousPhone = "88801891745"
 profile.collectibleUsername = "architect"
@@ -57,7 +69,7 @@ assert(MechagramVisualProfile.load(peerId: 100, defaults: defaults) == Mechagram
 defaults.set(Data("broken".utf8), forKey: "mechagram.visual.profile.v1.100")
 assert(MechagramVisualProfile.load(peerId: 100, defaults: defaults) == MechagramVisualProfile())
 defaults.removePersistentDomain(forName: name)
-print("Mechagram: 32 visual profile validation, isolation, persistence and reset assertions passed")
+print("Mechagram: 39 visual profile validation, isolation, persistence and reset assertions passed")
 '''
 with tempfile.TemporaryDirectory() as directory:
     path = Path(directory) / "main.swift"

@@ -99,7 +99,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     let regularContentNode: PeerInfoHeaderRegularContentNode
     let editingContentNode: PeerInfoHeaderEditingContentNode
     let avatarOverlayNode: PeerInfoEditingAvatarOverlayNode
-    private let mechagramBackdrop = MechagramProfileBackdropView()
+    private let mechagramBackdropNode = ASDisplayNode(viewBlock: { MechagramProfileBackdropView() })
+    private var mechagramBackdrop: MechagramProfileBackdropView { return self.mechagramBackdropNode.view as! MechagramProfileBackdropView }
     private let mechagramFrame = MechagramAvatarFrameView()
 
     let titleNodeContainer: ASDisplayNode
@@ -366,11 +367,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         self.subtitleNodeContainer.addSubnode(self.panelSubtitleNode)
         self.usernameNodeContainer.addSubnode(self.usernameNode)
 
+        self.regularContentNode.addSubnode(self.mechagramBackdropNode)
         self.regularContentNode.addSubnode(self.avatarClippingNode)
         self.avatarClippingNode.addSubnode(self.avatarListNode)
         
         self.regularContentNode.addSubnode(self.avatarListNode.listContainerNode.controlsClippingOffsetNode)
-        self.regularContentNode.view.insertSubview(self.mechagramBackdrop, at: 0)
         self.regularContentNode.addSubnode(self.titleNodeContainer)
         self.regularContentNode.addSubnode(self.subtitleNodeContainer)
         self.regularContentNode.addSubnode(self.subtitleNodeRawContainer)
@@ -706,7 +707,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         transition.updateFrame(node: self.avatarOverlayNode, frame: avatarOverlayFarme)
         
         let avatarFrame = CGRect(origin: CGPoint(x: hasStrip ? bandCenteredOrigin(width: avatarSize, margin: 16.0) : floor((width - avatarSize) / 2.0), y: statusBarHeight + 22.0), size: CGSize(width: avatarSize, height: avatarSize))
-        self.mechagramBackdrop.frame = CGRect(x: 0, y: 0, width: width, height: max(350, avatarFrame.maxY + 180))
         
         let regularNavigationContentsAccentColor: UIColor = peer?.effectiveProfileColor != nil ? .white : presentationData.theme.list.itemAccentColor
         let collapsedHeaderNavigationContentsAccentColor = presentationData.theme.list.itemAccentColor
@@ -2420,6 +2420,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         }
         
         transition.updateFrame(node: self.regularContentNode, frame: CGRect(origin: CGPoint(), size: CGSize(width: width, height: resolvedHeight)))
+        transition.updateFrame(node: self.mechagramBackdropNode, frame: CGRect(x: 0, y: 0, width: width, height: max(0, apparentHeight)))
+        self.mechagramBackdropNode.isHidden = !visualStyle.enabled || (visualStyle.backgroundImage.isEmpty && visualStyle.profileColor.isEmpty) || state.isEditing || self.isAvatarExpanded
         
         transition.updateFrameAdditive(node: self.buttonsContainerNode, frame: CGRect(origin: CGPoint(x: 0.0, y: apparentBackgroundHeight - backgroundHeight), size: CGSize(width: width, height: 1000.0)))
         

@@ -53,6 +53,12 @@ public struct MechagramVisualProfile: Codable, Equatable {
         return NSDecimalNumber(string: value, locale: Locale(identifier: "en_US_POSIX")).multiplying(by: NSDecimalNumber(value: 1_000_000_000)).int64Value
     }
 
+    public static func gramBalance(peerId: Int64, defaults: UserDefaults = .standard) -> Int64? {
+        if let value = defaults.string(forKey: "mechagram.visual.gram.\(peerId)"), let nanos = MechagramVisualProfile.gramNanos(value) { return nanos }
+        guard defaults.bool(forKey: "mechagram.visualBalances"), let value = defaults.string(forKey: "mechagram.visualTON") else { return nil }
+        return MechagramVisualProfile.gramNanos(value)
+    }
+
     public static func normalizedRatingNumber(_ text: String, maximum: Int64) -> String? {
         guard !text.isEmpty, text.allSatisfy({ $0.isASCII && $0.isNumber }), let value = Int64(text), value <= maximum else { return nil }
         return String(value)
@@ -82,8 +88,7 @@ public func mechagramVisualProfilePeer(_ peer: EnginePeer) -> EnginePeer {
 }
 
 public func mechagramVisualGramBalance(peerId: PeerId) -> Int64? {
-    guard let value = UserDefaults.standard.string(forKey: "mechagram.visual.gram.\(peerId.toInt64())") else { return nil }
-    return MechagramVisualProfile.gramNanos(value)
+    return MechagramVisualProfile.gramBalance(peerId: peerId.toInt64())
 }
 
 public func mechagramVisualRating(peerId: PeerId) -> TelegramStarRating? {
