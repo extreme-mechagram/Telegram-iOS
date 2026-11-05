@@ -51,8 +51,9 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         self.displayNodeDidLoad()
     }
 
-    override func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
-        super.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition)
+    override func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
+        super.containerLayoutUpdated(layout, transition: transition)
+        let navigationBarHeight = self.navigationLayout(layout: layout).navigationFrame.maxY
         self.table.frame = CGRect(origin: .zero, size: layout.size)
         self.table.contentInset = UIEdgeInsets(top: navigationBarHeight, left: 0, bottom: layout.intrinsicInsets.bottom, right: 0)
         self.table.scrollIndicatorInsets = self.table.contentInset
