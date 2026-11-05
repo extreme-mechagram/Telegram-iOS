@@ -544,7 +544,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     
     private var currentPanelStatusData: PeerInfoStatusData?
     func update(width: CGFloat, containerHeight: CGFloat, containerInset: CGFloat, sideInsets: PeerInfoSideInsets, statusBarHeight: CGFloat, navigationHeight: CGFloat, presentedInFormSheet: Bool, isMediaOnly: Bool, contentOffset: CGFloat, paneContainerY: CGFloat, presentationData: PresentationData, peer: EnginePeer?, cachedData: EngineCachedPeerData?, threadData: MessageHistoryThreadData?, peerNotificationSettings: TelegramPeerNotificationSettings?, threadNotificationSettings: TelegramPeerNotificationSettings?, globalNotificationSettings: EngineGlobalNotificationSettings?, statusData: PeerInfoStatusData?, panelStatusData: (PeerInfoStatusData?, PeerInfoStatusData?, CGFloat?), isSecretChat: Bool, isContact: Bool, isSettings: Bool, state: PeerInfoState, profileGiftsContext: ProfileGiftsContext?, screenData: PeerInfoScreenData?, isSearching: Bool, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, transition: ContainedViewLayoutTransition, additive: Bool, animateHeader: Bool) -> CGFloat {
-        let peer = peer.map(mechagramVisualProfilePeer)
         let visualStyle = MechagramVisualProfile.load(peerId: peer?.id.toInt64() ?? 0)
         self.mechagramBackdrop.update(style: visualStyle)
         // iPhone Duo: keep the header out of the side strip; without one every expression below is today's.
@@ -584,7 +583,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         // A suspicious peer's emoji status is not shown, as in their chat's title: neither the icon nor
         // the cover and colours a collectible status brings.
-        var peer = peer
+        var peer = peer.map(mechagramVisualProfilePeer)
         if case let .user(user) = peer, user.emojiStatus != nil, (cachedData as? CachedUserData)?.isSuspiciousPeer == true {
             peer = .user(user.withUpdatedEmojiStatus(nil))
         }

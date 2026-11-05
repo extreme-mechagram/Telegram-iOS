@@ -66,6 +66,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo 'build --keep_going' >> "$HOME/.bazelrc"
           echo 'build --jobs=3' >> "$HOME/.bazelrc"
           echo 'build --local_resources=memory=HOST_RAM*0.65' >> "$HOME/.bazelrc"
           python3 -u build-system/Make/Make.py \
