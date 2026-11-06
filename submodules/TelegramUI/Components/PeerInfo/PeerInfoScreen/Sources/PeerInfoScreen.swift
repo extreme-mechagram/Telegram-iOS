@@ -213,6 +213,7 @@ enum TopicsLimitedReason {
 
 final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodeProtocol, ASScrollViewDelegate {
     private var mechagramStyleObserver: NSObjectProtocol?
+    private let mechagramWallpaperNode = ASDisplayNode(viewBlock: { MechagramProfileBackdropView() })
     weak var controller: PeerInfoScreenImpl?
     
     let context: AccountContext
@@ -1348,6 +1349,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         self.scrollNode.view.alwaysBounceVertical = true
         self.scrollNode.view.scrollsToTop = false
         self.scrollNode.view.delegate = self.wrappedScrollViewDelegate
+        self.addSubnode(self.mechagramWallpaperNode)
         self.addSubnode(self.scrollNode)
         self.scrollNode.addSubnode(self.paneContainerNode)
         self.scrollNode.view.addSubview(self.headerNode.headerEdgeEffectContainer)
@@ -5641,6 +5643,10 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         
         self.ignoreScrolling = true
         
+        let wallpaperStyle = MechagramVisualProfile.load(peerId: (self.data?.peer?.id ?? self.peerId).toInt64())
+        (self.mechagramWallpaperNode.view as? MechagramProfileBackdropView)?.update(style: wallpaperStyle)
+        self.mechagramWallpaperNode.isHidden = !wallpaperStyle.hasWallpaper
+        transition.updateFrame(node: self.mechagramWallpaperNode, frame: CGRect(origin: .zero, size: layout.size))
         transition.updateFrame(node: self.scrollNode, frame: CGRect(origin: CGPoint(), size: layout.size))
         
         if self.isSettings {

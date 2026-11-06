@@ -47,6 +47,16 @@ assert(MechagramVisualProfile.gramBalance(peerId: 200, defaults: defaults) == ni
 assert(MechagramVisualProfile.gramBalance(peerId: 100, defaults: defaults) == 7_500_000_000)
 defaults.removeObject(forKey: "mechagram.visual.gram.100")
 assert(MechagramVisualProfile.gramBalance(peerId: 100, defaults: defaults) == nil)
+var wallpaper = MechagramVisualProfile()
+assert(!wallpaper.hasWallpaper)
+wallpaper.backgroundImage = "/local/wallpaper.jpg"
+assert(wallpaper.hasWallpaper)
+wallpaper.enabled = false
+assert(!wallpaper.hasWallpaper)
+wallpaper.enabled = true
+wallpaper.backgroundImage = ""
+wallpaper.profileColor = "FF0000"
+assert(wallpaper.hasWallpaper)
 var profile = MechagramVisualProfile()
 profile.anonymousPhone = "88801891745"
 profile.collectibleUsername = "architect"
@@ -69,7 +79,7 @@ assert(MechagramVisualProfile.load(peerId: 100, defaults: defaults) == Mechagram
 defaults.set(Data("broken".utf8), forKey: "mechagram.visual.profile.v1.100")
 assert(MechagramVisualProfile.load(peerId: 100, defaults: defaults) == MechagramVisualProfile())
 defaults.removePersistentDomain(forName: name)
-print("Mechagram: 39 visual profile validation, isolation, persistence and reset assertions passed")
+print("Mechagram: 43 visual profile validation, isolation, persistence and reset assertions passed")
 '''
 with tempfile.TemporaryDirectory() as directory:
     path = Path(directory) / "main.swift"

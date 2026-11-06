@@ -1443,7 +1443,7 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
         self.currentParams = (size, topInset, sideInset, bottomInset, deviceMetrics, visibleHeight, isScrollingLockedAtTop, expandProgress, navigationHeight, presentationData)
         self.presentationDataPromise.set(.single(presentationData))
         
-        self.backgroundNode.backgroundColor = presentationData.theme.list.blocksBackgroundColor
+        self.backgroundNode.backgroundColor = MechagramVisualProfile.load(peerId: self.peerId.toInt64()).hasWallpaper ? .clear : presentationData.theme.list.blocksBackgroundColor
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: size.width, height: size.height - topInset)))
         transition.updateFrame(node: self.scrollNode, frame: CGRect(origin: CGPoint(), size: size))
         

@@ -986,7 +986,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
             }
         }
         
-        self.backgroundColor = backgroundColor
+        self.backgroundColor = MechagramVisualProfile.load(peerId: (data?.peer?.id ?? self.peerId).toInt64()).hasWallpaper ? .clear : backgroundColor
 
         let isScrollingLockedAtTop = expansionFraction < 1.0 - CGFloat.ulpOfOne
 

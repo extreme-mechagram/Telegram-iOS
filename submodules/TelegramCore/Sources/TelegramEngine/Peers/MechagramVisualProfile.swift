@@ -18,6 +18,8 @@ public struct MechagramVisualProfile: Codable, Equatable {
 
     public init() {}
 
+    public var hasWallpaper: Bool { return self.enabled && (!self.backgroundImage.isEmpty || !self.profileColor.isEmpty) }
+
     public static func load(peerId: Int64, defaults: UserDefaults = .standard) -> MechagramVisualProfile {
         guard let data = defaults.data(forKey: "mechagram.visual.profile.v1.\(peerId)"), let value = try? JSONDecoder().decode(Self.self, from: data) else { return Self() }
         return value

@@ -99,8 +99,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     let regularContentNode: PeerInfoHeaderRegularContentNode
     let editingContentNode: PeerInfoHeaderEditingContentNode
     let avatarOverlayNode: PeerInfoEditingAvatarOverlayNode
-    private let mechagramBackdropNode = ASDisplayNode(viewBlock: { MechagramProfileBackdropView() })
-    private var mechagramBackdrop: MechagramProfileBackdropView { return self.mechagramBackdropNode.view as! MechagramProfileBackdropView }
     private let mechagramFrame = MechagramAvatarFrameView()
 
     let titleNodeContainer: ASDisplayNode
@@ -367,7 +365,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         self.subtitleNodeContainer.addSubnode(self.panelSubtitleNode)
         self.usernameNodeContainer.addSubnode(self.usernameNode)
 
-        self.regularContentNode.addSubnode(self.mechagramBackdropNode)
         self.regularContentNode.addSubnode(self.avatarClippingNode)
         self.avatarClippingNode.addSubnode(self.avatarListNode)
         
@@ -546,7 +543,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     private var currentPanelStatusData: PeerInfoStatusData?
     func update(width: CGFloat, containerHeight: CGFloat, containerInset: CGFloat, sideInsets: PeerInfoSideInsets, statusBarHeight: CGFloat, navigationHeight: CGFloat, presentedInFormSheet: Bool, isMediaOnly: Bool, contentOffset: CGFloat, paneContainerY: CGFloat, presentationData: PresentationData, peer: EnginePeer?, cachedData: EngineCachedPeerData?, threadData: MessageHistoryThreadData?, peerNotificationSettings: TelegramPeerNotificationSettings?, threadNotificationSettings: TelegramPeerNotificationSettings?, globalNotificationSettings: EngineGlobalNotificationSettings?, statusData: PeerInfoStatusData?, panelStatusData: (PeerInfoStatusData?, PeerInfoStatusData?, CGFloat?), isSecretChat: Bool, isContact: Bool, isSettings: Bool, state: PeerInfoState, profileGiftsContext: ProfileGiftsContext?, screenData: PeerInfoScreenData?, isSearching: Bool, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, transition: ContainedViewLayoutTransition, additive: Bool, animateHeader: Bool) -> CGFloat {
         let visualStyle = MechagramVisualProfile.load(peerId: peer?.id.toInt64() ?? 0)
-        self.mechagramBackdrop.update(style: visualStyle)
         // iPhone Duo: keep the header out of the side strip; without one every expression below is today's.
         let stripLeft = sideInsets.stripLeft
         let stripRight = sideInsets.stripRight
@@ -650,7 +646,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         let currentSavedMusic = self.profileMusic(peer: peer, screenData: screenData)
         let currentWalletBalance: Int64?
-        if !self.isSettings, let balance = (screenData?.cachedData as? CachedUserData)?.walletCard?.balance, balance >= 100_000_000 {
+        if let peerId = peer?.id, peerId == self.context.account.peerId, let visual = mechagramVisualGramBalance(peerId: peerId) {
+            currentWalletBalance = visual
+        } else if !self.isSettings, let balance = (screenData?.cachedData as? CachedUserData)?.walletCard?.balance, balance >= 100_000_000 {
             currentWalletBalance = balance
         } else {
             currentWalletBalance = nil
@@ -2420,8 +2418,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         }
         
         transition.updateFrame(node: self.regularContentNode, frame: CGRect(origin: CGPoint(), size: CGSize(width: width, height: resolvedHeight)))
-        transition.updateFrame(node: self.mechagramBackdropNode, frame: CGRect(x: 0, y: 0, width: width, height: max(0, apparentHeight)))
-        self.mechagramBackdropNode.isHidden = !visualStyle.enabled || (visualStyle.backgroundImage.isEmpty && visualStyle.profileColor.isEmpty) || state.isEditing || self.isAvatarExpanded
         
         transition.updateFrameAdditive(node: self.buttonsContainerNode, frame: CGRect(origin: CGPoint(x: 0.0, y: apparentBackgroundHeight - backgroundHeight), size: CGSize(width: width, height: 1000.0)))
         
@@ -2813,6 +2809,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             self.updateAvatarMask(transition: .immediate)
         }
         
+        let showWallpaper = visualStyle.hasWallpaper && !self.isAvatarExpanded
+        self.backgroundBannerView.isHidden = showWallpaper
+        self.giftsCover.view?.isHidden = showWallpaper
         return resolvedHeight
     }
     
