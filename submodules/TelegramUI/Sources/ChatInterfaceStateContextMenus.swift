@@ -968,7 +968,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         if (UserDefaults.standard.object(forKey: "exteraPort.showMessageDetails") as? Bool ?? true), messages.count == 1, let detailsMessage = messages.first {
             let languageCode = Locale.current.languageCode ?? "en"
             let isRussian = languageCode == "ru"
-            actions.append(.action(ContextMenuActionItem(text: isRussian ? "������ ���������" : "Message details", icon: { theme in
+            actions.append(.action(ContextMenuActionItem(text: isRussian ? "Сведения о сообщении" : "Message details", icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor)
             }, action: { c, _ in
                 var subItems: [ContextMenuItem] = []
@@ -983,14 +983,20 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 dateFormatter.dateStyle = .medium
                 dateFormatter.timeStyle = .medium
                 var details: [(String, String)] = [
-                    (isRussian ? "ID ���������" : "Message ID", String(detailsMessage.id.id)),
-                    (isRussian ? "ID ���� (����������)" : "Chat ID (internal)", String(detailsMessage.id.peerId.toInt64())),
-                    (isRussian ? "������������ ID" : "Message namespace", String(detailsMessage.id.namespace)),
-                    (isRussian ? "����������" : "Sent", dateFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(detailsMessage.timestamp)))),
+                    (isRussian ? "ID сообщения" : "Message ID", String(detailsMessage.id.id)),
+                    (isRussian ? "ID чата (внутренний)" : "Chat ID (internal)", String(detailsMessage.id.peerId.toInt64())),
+                    (isRussian ? "Пространство ID" : "Message namespace", String(detailsMessage.id.namespace)),
+                    (isRussian ? "Отправлено" : "Sent", dateFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(detailsMessage.timestamp)))),
                     ("Unix time", String(detailsMessage.timestamp))
                 ]
+                if let channel = detailsMessage.peers[detailsMessage.id.peerId] as? TelegramChannel, case .broadcast = channel.info {
+                    details.insert((isRussian ? "Номер поста в канале" : "Channel post number", String(detailsMessage.id.id)), at: 0)
+                }
+                if case let .replyThread(thread) = chatPresentationInterfaceState.chatLocation {
+                    details.append((isRussian ? "ID поста обсуждения" : "Discussion post ID", String(thread.effectiveTopId.id)))
+                }
                 if let author = detailsMessage.author {
-                    details.append((isRussian ? "ID ������ (����������)" : "Author ID (internal)", String(author.id.toInt64())))
+                    details.append((isRussian ? "ID автора (внутренний)" : "Author ID (internal)", String(author.id.toInt64())))
                 }
                 for (label, value) in details {
                     subItems.append(.action(ContextMenuActionItem(text: "\(label): \(value)", textLayout: .multiline, icon: { _ in nil }, action: { _, f in

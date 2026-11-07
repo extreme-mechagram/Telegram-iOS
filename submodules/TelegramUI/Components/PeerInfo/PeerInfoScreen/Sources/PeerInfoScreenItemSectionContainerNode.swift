@@ -124,6 +124,19 @@ final class PeerInfoScreenItemSectionContainerNode: ASDisplayNode {
         
         transition.updateFrame(node: self.itemContainerNode, frame: CGRect(origin: CGPoint(), size: CGSize(width: width, height: contentHeight)))
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: contentWithBackgroundOffset), size: CGSize(width: width, height: max(0.0, contentWithBackgroundHeight - contentWithBackgroundOffset))))
+        self.backgroundNode.cornerRadius = hasCorners ? 20.0 : 0.0
+        if hasCorners {
+            let mask = CAShapeLayer()
+            let path = UIBezierPath()
+            if contentWithBackgroundOffset > 0 { path.append(UIBezierPath(rect: CGRect(x: 0, y: 0, width: width, height: contentWithBackgroundOffset))) }
+            let blockHeight = max(0, contentWithBackgroundHeight - contentWithBackgroundOffset)
+            path.append(UIBezierPath(roundedRect: CGRect(x: 0, y: contentWithBackgroundOffset, width: width, height: blockHeight), cornerRadius: 20))
+            if contentHeight > contentWithBackgroundHeight { path.append(UIBezierPath(rect: CGRect(x: 0, y: contentWithBackgroundHeight, width: width, height: contentHeight - contentWithBackgroundHeight))) }
+            mask.path = path.cgPath
+            self.itemContainerNode.layer.mask = mask
+        } else {
+            self.itemContainerNode.layer.mask = nil
+        }
         transition.updateFrame(node: self.topSeparatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: contentWithBackgroundOffset - UIScreenPixel), size: CGSize(width: width, height: UIScreenPixel)))
         transition.updateFrame(node: self.bottomSeparatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: contentWithBackgroundHeight), size: CGSize(width: width, height: UIScreenPixel)))
         

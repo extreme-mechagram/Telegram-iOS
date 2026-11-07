@@ -11,6 +11,7 @@ func mechagramProfileColor(_ hex: String) -> UIColor? {
 func mechagramNicknameFont(_ style: MechagramVisualProfile, size: CGFloat) -> UIFont {
     let base = UIFont.systemFont(ofSize: size, weight: .medium)
     guard style.enabled else { return base }
+    if style.nicknameFont.hasPrefix("custom:"), let font = Font.importedFont(name: String(style.nicknameFont.dropFirst(7)), size: size) { return font }
     switch style.nicknameFont {
     case "rounded":
         return base.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? base

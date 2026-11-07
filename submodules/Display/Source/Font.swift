@@ -1,7 +1,26 @@
 import Foundation
 import UIKit
+import CoreText
 
 public struct Font {
+    private static let importedFontLock = NSLock()
+    private static var registeredFontPaths = Set<String>()
+
+    public static var importedFontNames: [String] {
+        return (UserDefaults.standard.dictionary(forKey: "mechagram.font.files") as? [String: String] ?? [:]).keys.sorted()
+    }
+
+    public static func importedFont(name: String, size: CGFloat) -> UIFont? {
+        guard let path = (UserDefaults.standard.dictionary(forKey: "mechagram.font.files") as? [String: String])?[name], FileManager.default.fileExists(atPath: path) else { return nil }
+        self.importedFontLock.lock()
+        if !self.registeredFontPaths.contains(path) {
+            _ = CTFontManagerRegisterFontsForURL(URL(fileURLWithPath: path) as CFURL, .process, nil)
+            self.registeredFontPaths.insert(path)
+        }
+        self.importedFontLock.unlock()
+        return UIFont(name: name, size: size)
+    }
+
     public enum Design {
         case regular
         case serif
@@ -170,6 +189,10 @@ public struct Font {
     }
 
     public static func with(size: CGFloat, design: Design = .regular, weight: Weight = .regular, width: Width = .standard, traits: Traits = []) -> UIFont {
+        if design == .regular, let selected = UserDefaults.standard.string(forKey: "mechagram.visual.font.app"), selected.hasPrefix("custom:"), let font = self.importedFont(name: String(selected.dropFirst(7)), size: size) {
+            if traits.contains(.italic), let descriptor = font.fontDescriptor.withSymbolicTraits(.traitItalic) { return UIFont(descriptor: descriptor, size: size) }
+            return font
+        }
         let design = self.mechagramDesign(design)
         let key = "\(size)_\(design.key)_\(weight.key)_\(width.key)_\(traits.rawValue)"
         
@@ -312,6 +335,7 @@ public struct Font {
     }
     
     public static func bold(_ size: CGFloat) -> UIFont {
+        if UserDefaults.standard.string(forKey: "mechagram.visual.font.app")?.hasPrefix("custom:") == true { return self.with(size: size, weight: .bold) }
         if #available(iOS 8.2, *) {
             return UIFont.boldSystemFont(ofSize: size)
         } else {

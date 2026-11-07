@@ -9,6 +9,7 @@ import TelegramUIPreferences
 import SwiftSignalKit
 import UniformTypeIdentifiers
 import ImageIO
+import CoreText
 
 public func mechagramVisualController(context: AccountContext) -> ViewController {
     return MechagramVisualController(context: context)
@@ -21,8 +22,9 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
     private let presentationDisposable = MetaDisposable()
     private var applyingColor: ((String) -> Void)?
     private var peerValue: Int64 { return self.context.account.peerId.toInt64() }
-    private let fontNames = ["Системный", "Скруглённый", "С засечками", "Моноширинный"]
-    private let fontValues = ["system", "rounded", "serif", "monospace"]
+    private var importingFont = false
+    private var fontNames: [String] { return ["Системный", "Скруглённый", "С засечками", "Моноширинный"] + Font.importedFontNames }
+    private var fontValues: [String] { return ["system", "rounded", "serif", "monospace"] + Font.importedFontNames.map { "custom:" + $0 } }
 
     init(context: AccountContext) {
         self.context = context
@@ -66,7 +68,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
     }
 
     func numberOfSections(in tableView: UITableView) -> Int { return 5 }
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { return [4, 4, 5, 2, 4][section] }
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { return [4, 4, 5, 3, 4][section] }
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { return ["Приложение", "Мой профиль", "Аватар и фон", "Ник и украшения", "Рейтинг и Gram"][section] }
     func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         if section == 0 { return "Цвет применяется средствами Telegram. После смены общего шрифта перезапустите приложение, чтобы обновить все экраны." }
@@ -76,7 +78,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         return nil
     }
 
-    private func fontName(_ value: String) -> String { return self.fontNames[self.fontValues.firstIndex(of: value) ?? 0] }
+    private func fontName(_ value: String) -> String { return value.hasPrefix("custom:") ? String(value.dropFirst(7)) : self.fontNames[self.fontValues.firstIndex(of: value) ?? 0] }
 
     private func pickColor(_ title: String, value: String, apply: @escaping (String) -> Void) {
         let picker = UIColorPickerViewController()
@@ -105,7 +107,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         cell.textLabel?.font = Font.regular(17)
         cell.detailTextLabel?.font = Font.regular(15)
         cell.accessoryType = .disclosureIndicator
-        let titles = [["Цвет приложения", "Светлая / тёмная тема", "Шрифт приложения", "Фон чатов и оформление"], ["Показывать оформление профиля", "Анонимный номер +888", "NFT-юзернейм", "Галочка в профиле"], ["Рамка аватара", "Форма рамки", "Цвет рамки", "Цвет фона профиля", "Обои профиля"], ["Шрифт ника", "Декоративный значок"], ["Уровень рейтинга", "Баллы рейтинга", "Баллы следующего уровня", "Баланс Gram"]]
+        let titles = [["Цвет приложения", "Светлая / тёмная тема", "Шрифт приложения", "Фон чатов и оформление"], ["Показывать оформление профиля", "Анонимный номер +888", "NFT-юзернейм", "Галочка в профиле"], ["Рамка аватара", "Форма рамки", "Цвет рамки", "Цвет фона профиля", "Обои профиля"], ["Шрифт ника", "Декоративный значок", "Импортировать TTF / OTF"], ["Уровень рейтинга", "Баллы рейтинга", "Баллы следующего уровня", "Баланс Gram"]]
         cell.textLabel?.text = titles[indexPath.section][indexPath.row]
         if indexPath.section == 1 && (indexPath.row == 0 || indexPath.row == 3) {
             let control = UISwitch()
@@ -133,7 +135,8 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         if indexPath.section == 3 && indexPath.row == 0 {
             let base = UIFont.systemFont(ofSize: 17)
             let design: UIFontDescriptor.SystemDesign = self.style.nicknameFont == "serif" ? .serif : (self.style.nicknameFont == "monospace" ? .monospaced : (self.style.nicknameFont == "rounded" ? .rounded : .default))
-            if let descriptor = base.fontDescriptor.withDesign(design) { cell.detailTextLabel?.font = UIFont(descriptor: descriptor, size: 17) }
+            if self.style.nicknameFont.hasPrefix("custom:"), let font = Font.importedFont(name: String(self.style.nicknameFont.dropFirst(7)), size: 17) { cell.detailTextLabel?.font = font }
+            else if let descriptor = base.fontDescriptor.withDesign(design) { cell.detailTextLabel?.font = UIFont(descriptor: descriptor, size: 17) }
         }
         return cell
     }
@@ -207,6 +210,7 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         case (2, 4): self.choices("Фон профиля", values: ["Выбрать изображение из Файлов", "Убрать изображение"]) { [weak self] index in
             guard let self else { return }
             if index == 1 { self.style.backgroundImage = ""; self.save(); return }
+            self.importingFont = false
             let picker: UIDocumentPickerViewController
             if #available(iOS 14.0, *) { picker = UIDocumentPickerViewController(forOpeningContentTypes: [.image], asCopy: true) }
             else { picker = UIDocumentPickerViewController(documentTypes: ["public.image"], in: .import) }
@@ -215,6 +219,11 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
         }
         case (3, 0): self.choices("Шрифт ника", values: self.fontNames) { [weak self] index in guard let self else { return }; self.style.nicknameFont = self.fontValues[index]; self.save() }
         case (3, 1): self.edit("Украшение аватара", value: self.style.decoration, placeholder: "До 4 символов, например 🎀 или 💎", validate: { $0.count <= 4 ? $0 : nil }) { [weak self] value in self?.style.decoration = value; self?.save() }
+        case (3, 2):
+            self.importingFont = true
+            let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true)
+            picker.delegate = self
+            self.show(picker)
         case (4, _):
             let row = indexPath.row
             let key = self.numericKey(row)
@@ -263,6 +272,11 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
 
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
+        if self.importingFont {
+            self.importingFont = false
+            self.importFont(url)
+            return
+        }
         do {
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
             let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true, kCGImageSourceThumbnailMaxPixelSize: 2048, kCGImageSourceShouldCacheImmediately: true]
@@ -280,6 +294,38 @@ private final class MechagramVisualController: ViewController, UITableViewDataSo
             if previous.deletingLastPathComponent().standardizedFileURL == directory.standardizedFileURL && previous.lastPathComponent.hasPrefix("profile-\(self.peerValue)") { try? FileManager.default.removeItem(at: previous) }
         } catch {
             let alert = UIAlertController(title: "Не удалось открыть изображение", message: "Выберите JPG, PNG или HEIC размером до 20 МБ.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            self.show(alert)
+        }
+    }
+
+    private func importFont(_ url: URL) {
+        do {
+            guard ["ttf", "otf"].contains(url.pathExtension.lowercased()) else { throw NSError(domain: "MechagramFont", code: 1) }
+            let data = try Data(contentsOf: url, options: .mappedIfSafe)
+            guard !data.isEmpty, data.count <= 20_000_000 else { throw NSError(domain: "MechagramFont", code: 2) }
+            let directory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("MechagramFonts", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let destination = directory.appendingPathComponent(UUID().uuidString + "." + url.pathExtension.lowercased())
+            try data.write(to: destination, options: .atomic)
+            guard let descriptors = CTFontManagerCreateFontDescriptorsFromURL(destination as CFURL) as? [CTFontDescriptor], !descriptors.isEmpty else {
+                try? FileManager.default.removeItem(at: destination)
+                throw NSError(domain: "MechagramFont", code: 3)
+            }
+            var files = UserDefaults.standard.dictionary(forKey: "mechagram.font.files") as? [String: String] ?? [:]
+            let names = descriptors.map { CTFontCopyPostScriptName(CTFontCreateWithFontDescriptor($0, 17, nil)) as String }
+            for name in names { files[name] = destination.path }
+            UserDefaults.standard.set(files, forKey: "mechagram.font.files")
+            guard let name = names.first, Font.importedFont(name: name, size: 17) != nil else { throw NSError(domain: "MechagramFont", code: 4) }
+            self.table.reloadData()
+            self.choices("Применить «" + name + "»", values: ["К нику", "К интерфейсу", "К нику и интерфейсу"]) { [weak self] index in
+                guard let self else { return }
+                if index != 1 { self.style.nicknameFont = "custom:" + name }
+                if index != 0 { UserDefaults.standard.set("custom:" + name, forKey: "mechagram.visual.font.app") }
+                self.save()
+            }
+        } catch {
+            let alert = UIAlertController(title: "Не удалось импортировать шрифт", message: "Выберите корректный файл TTF или OTF размером до 20 МБ.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             self.show(alert)
         }
