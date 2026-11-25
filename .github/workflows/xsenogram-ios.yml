@@ -3,6 +3,8 @@ on:
   push:
     branches: [master]
     paths: [".github/workflows/xsenogram-ios.yml"]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: xsenogram-ios-20261125
+          ref: xsenogram-ios-build
           submodules: recursive
           fetch-depth: 1
       - name: Select Xcode
