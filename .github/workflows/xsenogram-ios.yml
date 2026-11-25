@@ -1,0 +1,72 @@
+name: Xsenogram iOS
+on:
+  push:
+    branches: [xsenogram-ios-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
+          xcodebuild -version
+      - name: Configure Xsenogram
+        run: |
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          network=Path('submodules/TelegramCore/Sources/Network/Network.swift')
+          text=network.read_text()
+          assert text.count('177.3.213.27')==5, 'Unexpected seed address layout'
+          network.write_text(text.replace('177.3.213.27','31.77.129.33'))
+          context=Path('submodules/MtProtoKit/Sources/MTContext.m')
+          text=context.read_text()
+          pem='-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxF//0M0+/5PzgdNagTX+\nJ+dJgr75ZCTuiG8i4x7YwmJF+jiOGCjm7X7BLCaMc1+hOZYDL3+Gvle/AKykW1qo\nuaCJMVx/H+2l8LFXLelZ2PLawTb8A7BlTqWzL3db5BugMNWziL9TuhR8In1bwKY0\n7QVpR9in5zjAsAGLBk+mGt0DnVyMf1Xop2lLCFNmm0F4ykcAeaLCCIPbGWddliLY\n8xEEhI4GO2l1U3kZMwIOdOnAGJFtgUAoTe+FHR6F1s9adCVZB1teL/hf9R+WmekJ\nwygVz0MYEH7y6U49T45+/W7OF6X6g0W0j1uSSrsY4qN7twxbTad9zdGZ7ys+9v+P\nuQIDAQAB\n-----END PUBLIC KEY-----\n'
+          key='NSString *serverPubKey = @'+json.dumps(pem)+';'
+          text,n=re.subn(r'NSString \*serverPubKey = @.*?;',lambda _:key,text,count=1,flags=re.S)
+          assert n==1
+          text,n=re.subn(r'@"fingerprint": @\(0x[0-9a-fA-F]+LL\)', '@"fingerprint": @(0x9dbe5a4c45febeffULL)',text,count=1)
+          assert n==1
+          context.write_text(text)
+          cfg=Path('build-system/appstore-configuration.json')
+          data=json.loads(cfg.read_text())
+          data.update(bundle_id='org.xsenogram.ios',api_id='6',api_hash='0'*32,is_internal_build='true',is_appstore_build='false',app_specific_url_scheme='xsenogram',enable_siri=False,enable_icloud=False)
+          cfg.write_text(json.dumps(data,indent=2))
+          make=Path('build-system/Make/Make.py')
+          text=make.read_text().replace('self.disable_provisioning_profiles = False','self.disable_provisioning_profiles = True')
+          make.write_text(text)
+          build=Path('Telegram/BUILD')
+          build.write_text(build.read_text().replace('<string>Telegram</string>','<string>Xsenogram</string>'))
+          print('Xsenogram endpoint, RSA and application configuration applied')
+          PY
+      - name: Build IPA
+        run: |
+          python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
+          python3 -u build-system/Make/Make.py \
+            --cacheDir="$RUNNER_TEMP/bazel-cache" \
+            --bazelUserRoot="$RUNNER_TEMP/bazel-root" build \
+            --configurationPath=build-system/appstore-configuration.json \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$GITHUB_RUN_NUMBER"
+      - name: Collect IPA
+        run: |
+          mkdir -p output
+          find -L bazel-bin/Telegram -maxdepth 2 -name '*.ipa' -exec cp {} output/Xsenogram.ipa \;
+          test -s output/Xsenogram.ipa
+          shasum -a 256 output/Xsenogram.ipa > output/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Xsenogram-iOS
+          path: output/
+          if-no-files-found: error
+          retention-days: 30
+
