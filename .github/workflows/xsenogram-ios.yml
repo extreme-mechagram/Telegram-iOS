@@ -50,6 +50,7 @@ jobs:
           cfg.write_text(json.dumps(data,indent=2))
           make=Path('build-system/Make/Make.py')
           text=make.read_text().replace('self.disable_provisioning_profiles = False','self.disable_provisioning_profiles = True')
+          text=text.replace('    if codesigning_data.aps_environment is None:', '    if codesigning_data.aps_environment is None and bazel_command_line is not None and bazel_command_line.disable_provisioning_profiles:\n        codesigning_data.aps_environment = "development"\n    if codesigning_data.aps_environment is None:')
           make.write_text(text)
           build=Path('Telegram/BUILD')
           build.write_text(build.read_text().replace('<string>Telegram</string>','<string>Xsenogram</string>'))
