@@ -18,6 +18,13 @@ jobs:
           ref: xsenogram-ios-build
           submodules: recursive
           fetch-depth: 1
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/bazel-cache
+            ${{ runner.temp }}/bazel-root
+          key: xsenogram-ios-intel-v1-${{ github.run_id }}
+          restore-keys: xsenogram-ios-intel-v1-
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
@@ -51,7 +58,13 @@ jobs:
           make=Path('build-system/Make/Make.py')
           text=make.read_text().replace('self.disable_provisioning_profiles = False','self.disable_provisioning_profiles = True')
           text=text.replace('    if codesigning_data.aps_environment is None:', '    if codesigning_data.aps_environment is None and bazel_command_line is not None and bazel_command_line.disable_provisioning_profiles:\n        codesigning_data.aps_environment = "development"\n    if codesigning_data.aps_environment is None:')
+          text=text.replace("'--announce_rc',", "'--announce_rc', '--features=disable_legacy_signing',")
           make.write_text(text)
+          profile=Path('build-system/bazel-rules/rules_apple/apple/internal/partials/provisioning_profile.bzl')
+          text=profile.read_text()
+          text,n=re.subn(r'    if not profile_artifact:\n        fail\(.*?\n        \)', '    if not profile_artifact:\n        return struct(bundle_files = [])', text, count=1, flags=re.S)
+          assert n==1, 'Unsigned provisioning patch did not apply'
+          profile.write_text(text)
           build=Path('Telegram/BUILD')
           build.write_text(build.read_text().replace('<string>Telegram</string>','<string>Xsenogram</string>'))
           print('Xsenogram endpoint, RSA and application configuration applied')
@@ -72,6 +85,13 @@ jobs:
           find -L bazel-bin/Telegram -maxdepth 2 -name '*.ipa' -exec cp {} output/Xsenogram.ipa \;
           test -s output/Xsenogram.ipa
           shasum -a 256 output/Xsenogram.ipa > output/SHA256SUMS.txt
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ${{ runner.temp }}/bazel-cache
+            ${{ runner.temp }}/bazel-root
+          key: xsenogram-ios-intel-v1-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         with:
           name: Xsenogram-iOS
