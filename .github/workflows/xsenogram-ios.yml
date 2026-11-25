@@ -2,6 +2,8 @@ name: Xsenogram iOS
 on:
   push:
     branches: [xsenogram-ios-20261125]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 permissions:
   contents: read
