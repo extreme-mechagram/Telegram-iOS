@@ -384,7 +384,7 @@ func networkUsageStats(basePath: String, reset: ResetNetworkUsageStats) -> Signa
                 audio: NetworkUsageStatsConnectionsEntry(
                     cellular: NetworkUsageStatsDirectionsEntry(
                         incoming: dict[UsageCalculationTag(connection: .cellular, direction: .incoming, category: .audio).key]!,
-                        outgoing: dict[UsageCalculationTag(connection: .cellular, direction: .audio, category: .audio).key]!),
+                        outgoing: dict[UsageCalculationTag(connection: .cellular, direction: .outgoing, category: .audio).key]!),
                     wifi: NetworkUsageStatsDirectionsEntry(
                         incoming: dict[UsageCalculationTag(connection: .wifi, direction: .incoming, category: .audio).key]!,
                         outgoing: dict[UsageCalculationTag(connection: .wifi, direction: .outgoing, category: .audio).key]!)),
@@ -564,6 +564,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                 }
             }
             #endif
+            // Xsenogram uses its own seed addresses and does not enable cloud bootstrap.
+            _ = wrappedAdditionalSource
             
             if !supplementary {
                 let externalRequestVerificationStream = arguments.externalRequestVerificationStream
