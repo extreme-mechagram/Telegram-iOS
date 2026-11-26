@@ -498,7 +498,8 @@ final class GiftsListView: UIView {
                     }
                 case let .unique(gift):
                     subject = .uniqueGift(gift: gift, price: nil)
-                    peer = nil
+                    // Match ordinary gifts: show the sender, or the anonymous badge.
+                    peer = product.fromPeer.flatMap { .peer($0) } ?? .anonymous
                     resellAmount = gift.resellAmounts?.first(where: { $0.currency == .stars })
                     
                     if !(gift.resellAmounts ?? []).isEmpty {
