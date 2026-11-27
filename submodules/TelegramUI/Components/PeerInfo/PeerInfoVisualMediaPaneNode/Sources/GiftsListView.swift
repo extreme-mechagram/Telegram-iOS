@@ -498,7 +498,7 @@ final class GiftsListView: UIView {
                     }
                 case let .unique(gift):
                     subject = .uniqueGift(gift: gift, price: nil)
-                    peer = nil
+                    peer = product.fromPeer.flatMap { .peer($0) }
                     resellAmount = gift.resellAmounts?.first(where: { $0.currency == .stars })
                     
                     if !(gift.resellAmounts ?? []).isEmpty {
